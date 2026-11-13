@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MYTRIA - Login</title>
+  <style>
+    body { font-family: sans-serif; background: #0f0f13; color: #fff; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+    .card { background: #1a1a24; padding: 2rem; border-radius: 8px; width: 100%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+    h2 { color: #00e5ff; text-align: center; margin-bottom: 15px; }
+    input, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 4px; border: 1px solid #333; box-sizing: border-box; font-size: 1rem; }
+    input { background: #262636; color: #fff; }
+    button { background: #00e5ff; color: #000; font-weight: bold; cursor: pointer; border: none; }
+    button.btn-google { background: #ea4335; color: #fff; }
+    .divider { text-align: center; margin: 15px 0; color: #666; font-size: 0.85rem; }
+    #log { background: #000; color: #0f0; padding: 10px; font-family: monospace; font-size: 0.8rem; margin-top: 15px; border-radius: 4px; max-height: 120px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>MYTRIA LOGIN</h2>
+    <button id="btn-google" class="btn-google">Entrar com Google</button>
+    <div class="divider">ou use E-mail e Senha</div>
+    <input type="email" id="email" placeholder="Seu e-mail">
+    <input type="password" id="password" placeholder="Sua senha">
+    <button id="btn-login">Entrar</button>
+    <button id="btn-register" style="background: #84cc16; color: #0f172a;">Cadastrar Nova Conta</button>
+    <div id="log">Pronto para uso...</div>
+  </div>
+
+  
+  <script type="module">
+    import { auth, db, initializePlayerCallable } from "./firebase.js";
+
+    import {
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      onAuthStateChanged,
+      GoogleAuthProvider,
+      signInWithPopup
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    import {
+      doc,
+      getDoc,
+      setDoc,
+      updateDoc,
+      runTransaction,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const logBox = document.getElementById("log");
+
+    function logMsg(msg) {
+      console.log(msg);
+      logBox.textContent += "\n" + msg;
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function generatePlayerId() {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let result = "";
+      for (let i = 0; i < 9; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    }
+
+    async function syncUserToFirestore(user) {
+      const userRef = doc(db, "users", user.uid);
+      const snapshot = await getDoc(userRef);
+
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (!data.playerId) {
+          await updateDoc(userRef, {
+            playerId: generatePlayerId()
+          });
+        }
+      } else {
+        await setDoc(userRef, {
+          uid: user.uid,
+          email: user.email || "",
+          displayName: user.displayName || (user.email || "Jogador").split("@")[0],
+          photoURL: user.photoURL || "",
+          playerId: generatePlayerId(),
+          createdAt: serverTimestamp()
+        });
+      }
+    }
+
+    async function processarLoginSucesso(user) {
+      logMsg("Autenticado: " + (user.email || user.uid));
+
+      await syncUserToFirestore(user);
+
+      logMsg("Inicializando dados pelo backend...");
+      const response = await initializePlayerCallable();
+      const result = response.data;
+
+      logMsg(
+        (result.created ? "Conta inicializada" : "Dados existentes preservados") +
+        " | Tipo: " + result.accountType +
+        " | Saldo: " + result.balance + " MYT"
+      );
+
+      logMsg("Login concluído. Abrindo MYTRIA...");
+      window.location.replace("index.html");
+    }
+
+    let processing = false;
+    let processedUid = null;
+
+    async function finalizarLogin(user) {
+      if (!user || processing || processedUid === user.uid) return;
+
+      processing = true;
+      try {
+        await processarLoginSucesso(user);
+        processedUid = user.uid;
+      } catch (error) {
+        logMsg("Erro ao preparar jogador: " + error.message);
+        console.error(error);
+      } finally {
+        processing = false;
+      }
+    }
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        logMsg("Sessão detectada: " + (user.email || user.uid));
+        finalizarLogin(user);
+      } else {
+        logMsg("Nenhuma sessão autenticada.");
+      }
+    });
+
+    document.getElementById("btn-login").onclick = async () => {
+      const email = document.getElementById("email").value.trim();
+      const pass = document.getElementById("password").value;
+
+      if (!email || !pass) {
+        logMsg("Preencha e-mail e senha.");
+        return;
+      }
+
+      try {
+        logMsg("Entrando com e-mail e senha...");
+        await signInWithEmailAndPassword(auth, email, pass);
+      } catch (error) {
+        logMsg("Erro no login: " + error.code + " - " + error.message);
+      }
+    };
+
+    document.getElementById("btn-register").onclick = async () => {
+      const email = document.getElementById("email").value.trim();
+      const pass = document.getElementById("password").value;
+
+      if (!email || !pass) {
+        logMsg("Preencha e-mail e senha.");
+        return;
+      }
+
+      try {
+        logMsg("Criando conta...");
+        await createUserWithEmailAndPassword(auth, email, pass);
+      } catch (error) {
+        logMsg("Erro no cadastro: " + error.code + " - " + error.message);
+      }
+    };
+
+    document.getElementById("btn-google").onclick = async () => {
+      const isLocalHost =
+        location.hostname === "localhost" ||
+        location.hostname === "127.0.0.1";
+
+      if (isLocalHost) {
+        logMsg("No teste local, use e-mail e senha. O Google OAuth não está configurado no emulador.");
+        return;
+      }
+
+      try {
+        logMsg("Abrindo autenticação Google...");
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: "select_account" });
+        await signInWithPopup(auth, provider);
+      } catch (error) {
+        logMsg("Erro Google: " + error.code + " - " + error.message);
+      }
+    };
+
+    logMsg("Login MYTRIA carregado com Firebase Modular.");
+  </script>
+  
+</body>
+</html>

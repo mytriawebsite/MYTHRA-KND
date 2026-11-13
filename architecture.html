@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MYTRIA.KND - Arquitetura do Projeto</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --bg-main: #04060b;
+      --bg-card: #080e1d;
+      --bg-hover: #101c38;
+      --accent-green: #84cc16;
+      --accent-cyan: #00f2ff;
+      --accent-gold: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #1e293b;
+      --red: #ef4444;
+      --purple: #a855f7;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100vh;
+    }
+
+    main {
+      width: 100%;
+      max-width: 1100px;
+      margin: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #08172b, #101c38, #07101e);
+      border: 1px solid var(--accent-cyan);
+      border-radius: 14px;
+      padding: 22px 16px;
+      box-shadow: 0 0 20px rgba(0,242,255,.08);
+    }
+
+    .eyebrow {
+      color: var(--accent-green);
+      font-size: .72rem;
+      font-weight: bold;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: clamp(1.5rem, 5vw, 2.2rem);
+      color: var(--accent-cyan);
+      margin-bottom: 8px;
+    }
+
+    .hero p {
+      color: var(--text-muted);
+      line-height: 1.6;
+      font-size: .9rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--accent-cyan);
+      font-size: 1rem;
+      margin-bottom: 13px;
+    }
+
+    .section-title i {
+      width: 20px;
+      text-align: center;
+    }
+
+    .muted {
+      color: var(--text-muted);
+      font-size: .84rem;
+      line-height: 1.6;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+    }
+
+    .module {
+      background: #050a14;
+      border: 1px solid var(--border-color);
+      border-radius: 9px;
+      padding: 13px;
+    }
+
+    .module h3 {
+      color: var(--text-main);
+      font-size: .88rem;
+      margin-bottom: 6px;
+    }
+
+    .module h3 i {
+      color: var(--accent-cyan);
+      margin-right: 6px;
+    }
+
+    .module p {
+      color: var(--text-muted);
+      font-size: .78rem;
+      line-height: 1.55;
+    }
+
+    .tag {
+      display: inline-block;
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      padding: 3px 7px;
+      font-size: .68rem;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 12px 0;
+    }
+
+    .flow-step {
+      background: #0c192b;
+      border: 1px solid var(--accent-cyan);
+      color: var(--text-main);
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+      font-size: .76rem;
+      font-weight: bold;
+      flex: 1;
+      min-width: 125px;
+    }
+
+    .flow-step i {
+      display: block;
+      color: var(--accent-cyan);
+      font-size: 1.15rem;
+      margin-bottom: 6px;
+    }
+
+    .flow-arrow {
+      color: var(--accent-green);
+    }
+
+    .notice {
+      border-left: 3px solid var(--accent-gold);
+      background: rgba(245,158,11,.07);
+      padding: 12px;
+      border-radius: 5px;
+      color: var(--text-muted);
+      font-size: .8rem;
+      line-height: 1.6;
+    }
+
+    .notice strong {
+      color: var(--accent-gold);
+    }
+
+    .good {
+      color: var(--accent-green);
+      font-weight: bold;
+    }
+
+    .pending {
+      color: var(--accent-gold);
+      font-weight: bold;
+    }
+
+    .danger {
+      color: var(--red);
+      font-weight: bold;
+    }
+
+    .status-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .78rem;
+    }
+
+    .status-table th,
+    .status-table td {
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 7px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .status-table th {
+      color: var(--accent-cyan);
+      background: #0b1425;
+    }
+
+    .status-table td:first-child {
+      width: 32px;
+      color: var(--text-muted);
+    }
+
+    .status-table td:last-child {
+      white-space: nowrap;
+    }
+
+    .progress-track {
+      height: 9px;
+      background: #02050a;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 10px 0 6px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 38%;
+      background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan));
+    }
+
+    .page-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+    }
+
+    .page-item {
+      background: #050a14;
+      border: 1px solid var(--border-color);
+      border-radius: 7px;
+      padding: 10px;
+      font-size: .78rem;
+      color: var(--text-muted);
+    }
+
+    .page-item i {
+      color: var(--accent-cyan);
+      margin-right: 6px;
+    }
+
+    .code-path {
+      display: block;
+      background: #02050a;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 9px;
+      color: var(--accent-green);
+      font-family: monospace;
+      font-size: .76rem;
+      overflow-wrap: anywhere;
+      margin-top: 7px;
+    }
+
+    footer {
+      text-align: center;
+      color: #64748b;
+      font-size: .72rem;
+      padding: 10px 0 25px;
+    }
+
+    @media (max-width: 520px) {
+      main { padding: 9px; }
+      .card { padding: 12px; }
+      .status-table { font-size: .70rem; }
+      .status-table th,
+      .status-table td { padding: 8px 4px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="header-container"></div>
+
+  <main>
+    <section class="hero">
+      <div class="eyebrow">PROJECT CONTROL CENTER</div>
+      <h1><i class="fa-solid fa-cubes"></i> MYTRIA.KND</h1>
+      <p>
+        Arquitetura, organização técnica e acompanhamento do desenvolvimento.
+        Esta página documenta como o projeto será construído, quais partes já
+        existem e quais etapas ainda precisam ser concluídas.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><i class="fa-solid fa-bullseye"></i> Objetivo do projeto</h2>
+      <p class="muted">
+        Construir um jogo independente de mineração virtual, economia digital,
+        máquinas, racks, salas, minigames, missões e progressão de jogadores.
+        RollerCoin e Limercoin são referências de funcionalidades e experiência,
+        não modelos para copiar integralmente.
+      </p>
+      <br>
+      <div class="notice">
+        <strong>Princípio de desenvolvimento:</strong>
+        primeiro reproduzir e testar as funcionalidades essenciais.
+        Depois, ampliar o jogo com os sistemas e ideias originais do MYTRIA.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><i class="fa-solid fa-layer-group"></i> Arquitetura geral</h2>
+      <div class="grid">
+        <div class="module">
+          <h3><i class="fa-solid fa-display"></i> Frontend</h3>
+          <p>Páginas, botões, menus, animações e apresentação dos dados ao jogador.</p>
+        </div>
+        <div class="module">
+          <h3><i class="fa-solid fa-gears"></i> Backend</h3>
+          <p>Validação de ações, regras do jogo, cálculos, recompensas e transações.</p>
+        </div>
+        <div class="module">
+          <h3><i class="fa-solid fa-database"></i> Firestore</h3>
+          <p>Armazenamento persistente de perfil, inventário, salas, saldos e progresso.</p>
+        </div>
+        <div class="module">
+          <h3><i class="fa-solid fa-shield-halved"></i> Segurança</h3>
+          <p>Firebase Authentication, autorização por jogador e validações de acesso.</p>
+        </div>
+      </div>
+      <br>
+      <div class="notice">
+        Os dados permanentes do jogo devem ficar no Firebase. O LocalStorage
+        não será usado como banco de dados do jogador. Ajustes visuais temporários
+        devem ser tratados separadamente da economia e do inventário.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><i class="fa-solid fa-diagram-project"></i> Fluxo principal do jogo</h2>
+      <p class="muted">
+        A instalação, o cálculo de potência e a produção econômica são etapas
+        diferentes. Cada uma terá responsabilidade própria.
+      </p>
+      <div class="flow">
+        <div class="flow-step"><i class="fa-solid fa-box-open"></i>Inventário</div>
+        <i class="fa-solid fa-arrow-right flow-arrow"></i>
+        <div class="flow-step"><i class="fa-solid fa-house"></i>Mini Home / Sala</div>
+        <i class="fa-solid fa-arrow-right flow-arrow"></i>
+        <div class="flow-step"><i class="fa-solid fa-bolt"></i>Hash Power</div>
+        <i class="fa-solid fa-arrow-right flow-arrow"></i>
+        <div class="flow-step"><i class="fa-solid fa-coins"></i>Economia</div>
+      </div>
+      <p class="muted">
+        Uma instalação válida retira o item do inventário e o coloca na sala.
+        Um item não pode permanecer duplicado nos dois lugares. Somente máquinas
+        instaladas e válidas contribuem para a potência.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><i class="fa-solid fa-puzzle-piece"></i> Módulos de responsabilidade</h2>
+      <div class="grid">
+        <div class="module">
+          <h3>miniHomeService</h3>
+          <p>Instalação, remoção e posicionamento de racks e máquinas na Mini Home.</p>
+        </div>
+        <div class="module">
+          <h3>roomInstallationService</h3>
+          <p>Instalação e remoção de equipamentos nas salas completas de mineração.</p>
+        </div>
+        <div class="module">
+          <h3>inventoryService</h3>
+          <p>Quantidades, baixa, devolução e integridade do inventário.</p>
+        </div>
+        <div class="module">
+          <h3>miningService</h3>
+          <p>Leitura das máquinas instaladas e cálculo de Hash Power.</p>
+        </div>
+        <div class="module">
+          <h3>economyService</h3>
+          <p>Produção, saldos e distribuição da potência entre moedas e pools.</p>
+        </div>
+        <div class="module">
+          <h3>purchaseService</h3>
+          <p>Compras validadas. Deve preservar o fluxo de compra que já funciona.</p>
+        </div>
+        <div class="module">
+          <h3>gameSessionService</h3>
+          <p>Criação e encerramento de sessões dos minigames.</p>
+        </div>
+        <div class="module">
+          <h3>gameValidationService</h3>
+          <p>Validação de resultados antes da concessão de recompensas.</p>
+        </div>
+        <div class="module">
+          <h3>questService</h3>
+          <p>Missões diárias e semanais, objetivos e progresso.</p>
+        </div>
+        <div class="module">
+          <h3>seasonService</h3>
+          <p>Season Pass, experiência, níveis e recompensas de temporada.</p>
+        </div>
+        <div class="module">
+          <h3>eventService</h3>
+          <p>Eventos independentes, configuráveis e reutilizáveis.</p>
+        </div>
+        <div class="module">
+          <h3>rewardService</h3>
+          <p>Entrega centralizada e idempotente de recompensas.</p>
+        </div>
+        <div class="module">
+          <h3>playerProgressService</h3>
+          <p>Progresso, conquistas, estatísticas e evolução do jogador.</p>
+        </div>
+        <div class="module">
+          <h3>history / auditService</h3>
+          <p>Histórico de operações e rastreabilidade de alterações importantes.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><i class="fa-solid fa-sitemap"></i> Mapa de páginas</h2>
+      <div class="page-list">
+        <div class="page-item"><i class="fa-solid fa-house"></i>Home / Mini Home</div>
+        <div class="page-item"><i class="fa-solid fa-server"></i>Mining Room</div>
+        <div class="page-item"><i class="fa-solid fa-store"></i>Market / Store</div>
+        <div class="page-item"><i class="fa-solid fa-box-open"></i>Inventory</div>
+        <div class="page-item"><i class="fa-solid fa-wallet"></i>Wallet</div>
+        <div class="page-item"><i class="fa-solid fa-gamepad"></i>Game Hub</div>
+        <div class="page-item"><i class="fa-solid fa-puzzle-piece"></i>Minigames</div>
+        <div class="page-item"><i class="fa-solid fa-list-check"></i>Quests</div>
+        <div class="page-item"><i class="fa-solid fa-gem"></i>Season Pass</div>
+        <div class="page-item"><i class="fa-solid fa-calendar-days"></i>Events</div>
+        <div class="page-item"><i class="fa-solid fa-user"></i>Profile</div>
+        <div class="page-item"><i class="fa-solid fa-trophy"></i>Achievements / Rankings</div>
+        <div class="page-item"><i class="fa-solid fa-shield-halved"></i>Admin / Configuration</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><i class="fa-brands fa-google"></i> Firebase e ambiente</h2>
+      <div class="grid">
+        <div class="module">
+          <h3>Autenticação</h3>
+          <p>Login Google, cadastro e login por e-mail.</p>
+        </div>
+        <div class="module">
+          <h3>Firestore</h3>
+          <p>Dados persistentes do jogador e estado do jogo.</p>
+        </div>
+        <div class="module">
+          <h3>Emuladores</h3>
+          <p>Testes locais antes de qualquer alteração no ambiente real.</p>
+        </div>
+        <div class="module">
+          <h3>Cloud Functions</h3>
+          <p>Operações críticas e validações executadas no backend.</p>
+        </div>
+      </div>
+      <br>
+      <p class="muted">Projeto real: <strong>mytria02</strong></p>
+      <p class="muted">Projeto de testes: <strong>demo-mytria02</strong></p>
+      <p class="muted">Região das Functions: <strong>southamerica-east1</strong></p>
+      <p class="muted">Plano atual: <strong>Firebase Spark</strong></p>
+      <br>
+      <div class="notice">
+        <strong>Proteção:</strong> não publicar regras ou Functions no projeto real,
+        não ativar Blaze e não migrar dados sem autorização explícita.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><i class="fa-solid fa-code"></i> Organização dos arquivos</h2>
+      <p class="muted">Estrutura conceitual desejada. Os caminhos devem ser confirmados no projeto antes de criar ou mover arquivos.</p>
+      <span class="code-path">pages/ — páginas do jogo</span>
+      <span class="code-path">js/services/ — serviços e regras de domínio</span>
+      <span class="code-path">js/modules/ — módulos compartilhados</span>
+      <span class="code-path">js/config/ — configurações</span>
+      <span class="code-path">assets/ — imagens, máquinas, racks e efeitos</span>
+      <span class="code-path">functions/ — operações de backend</span>
+      <span class="code-path">firestore.rules — regras de segurança</span>
+      <span class="code-path">tests/ — testes automatizados</span>
+      <br>
+      <div class="notice">
+        Esta lista é uma proposta de organização, não uma instrução para mover
+        os arquivos atuais. Primeiro devemos mapear o repositório e preservar
+        os caminhos que já estão funcionando.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><i class="fa-solid fa-list-check"></i> Controle de desenvolvimento</h2>
+      <p class="muted">Acompanhamento registrado do trabalho de instalação, segurança e mineração.</p>
+      <div class="progress-track"><div class="progress-fill"></div></div>
+      <p class="muted"><strong style="color:var(--accent-green)">10 de 26 tarefas</strong> — aproximadamente 38% concluídas.</p>
+      <br>
+      <div style="overflow-x:auto;">
+        <table class="status-table">
+          <thead>
+            <tr><th>Nº</th><th>Tarefa</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>Backups</td><td class="good">FEITO</td></tr>
+            <tr><td>2</td><td>Proteção dos dados reais</td><td class="good">FEITO</td></tr>
+            <tr><td>3</td><td>Grade 4×4</td><td class="good">FEITO</td></tr>
+            <tr><td>4</td><td>Persistência em mapas Firestore</td><td class="good">FEITO</td></tr>
+            <tr><td>5</td><td>Instalação de mineradoras</td><td class="pending">PENDENTE</td></tr>
+            <tr><td>6</td><td>Remoção de mineradoras</td><td class="good">FEITO</td></tr>
+            <tr><td>7</td><td>Instalação de rack</td><td class="pending">PENDENTE</td></tr>
+            <tr><td>8</td><td>Remoção de rack vazio</td><td class="pending">EM TESTE</td></tr>
+            <tr><td>9</td><td>Remoção de rack ocupado e devolução integral</td><td class="good">FEITO</td></tr>
+            <tr><td>10</td><td>Validar tamanho 1</td><td class="pending">PENDENTE</td></tr>
+            <tr><td>11</td><td>Validar tamanho 2</td><td class="pending">PENDENTE</td></tr>
+            <tr><td>12</td><td>Bloquear rack sem imagem</td><td class="pending">PENDENTE</td></tr>
+            <tr><td>13</td><td>Centralizar inventário</td><td class="good">FEITO</td></tr>
+            <tr><td>14</td><td>Sincronização em tempo real</td><td class="pending">PENDENTE</td></tr>
+            <tr><td>15</td><td>Impedir duplicação e perda</td><td class="good">FEITO</td></tr>
+            <tr><td>16</td><td>Impedir alteração entre jogadores</td><td class="good">FEITO</td></tr>
+            <tr><td>17</td><td>Impedir crédito indevido de saldo</td><td class="good">FEITO</td></tr>
+            <tr><td>18</td><td>Impedir instalação sem baixa no inventário</td><td class="pending">PENDENTE</td></tr>
+            <tr><td>19</td><td>Impedir inventário negativo</td><td class="good">FEITO</td></tr>
+            <tr><td>20</td><td>Bateria completa de testes</td><td class="pending">PENDENTE</td></tr>
+            <tr><td>21</td><td>Teste com duas contas</td><td class="pending">PENDENTE</td></tr>
+            <tr><td>22</td><td>Revisão Firebase e backend</td><td class="pending">EM ANDAMENTO</td></tr>
+            <tr><td>23</td><td>Repetir todos os testes</td><td class="pending">PENDENTE</td></tr>
+            <tr><td>24</td><td>Publicar regras com autorização</td><td class="pending">PENDENTE</td></tr>
+            <tr><td>25</td><td>Teste final no jogo</td><td class="pending">PENDENTE</td></tr>
+            <tr><td>26</td><td>Calibrar posição das máquinas nos racks</td><td class="pending">PENDENTE</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title"><i class="fa-solid fa-forward-step"></i> Próximas etapas</h2>
+      <div class="module">
+        <h3>1. Resolver instalação pelo inventário</h3>
+        <p>Investigar a instalação de racks e máquinas sem alterar o fluxo de compra que já funciona.</p>
+      </div>
+      <br>
+      <div class="module">
+        <h3>2. Revisar regras e operações</h3>
+        <p>Testar no emulador e reduzir a complexidade das regras sem enfraquecer as validações de segurança.</p>
+      </div>
+      <br>
+      <div class="module">
+        <h3>3. Validar Hash Power</h3>
+        <p>Garantir que apenas máquinas corretamente instaladas contribuam para a potência.</p>
+      </div>
+      <br>
+      <div class="module">
+        <h3>4. Construir a economia</h3>
+        <p>Separar pools de moedas e controlar percentuais de alocação que totalizem exatamente 100%.</p>
+      </div>
+      <br>
+      <div class="module">
+        <h3>5. Expandir os sistemas do jogo</h3>
+        <p>Minigames, quests, Season Pass, eventos, conquistas e novas funcionalidades originais.</p>
+      </div>
+    </section>
+
+    <footer>
+      MYTRIA.KND — Project Architecture & Development Control
+    </footer>
+  </main>
+
+  <script src="header-template.js" type="module"></script>
+  <script src="auth-guard.js" type="module"></script>
+</body>
+</html>

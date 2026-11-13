@@ -1,0 +1,410 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(userId) {
+      return request.auth != null
+        && request.auth.uid == userId;
+    }
+
+
+    function validInitialState() {
+      let data = request.resource.data;
+      let racks = data.room.racks;
+
+      return data.keys().hasOnly([
+          'balance',
+          'inventory',
+          'room',
+          'initialTestCreditApplied',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.balance == 1000
+        && data.initialTestCreditApplied == true
+        && data.inventory is map
+        && data.inventory.keys().hasOnly(['racks', 'miners'])
+        && data.inventory.racks is map
+        && data.inventory.racks.size() == 0
+        && data.inventory.miners is map
+        && data.inventory.miners.size() == 0
+        && data.room is map
+        && data.room.keys().hasOnly(['racks'])
+        && racks is map
+        && racks.size() == 16
+        && racks.keys().hasOnly([
+          'slot_1', 'slot_2', 'slot_3', 'slot_4',
+          'slot_5', 'slot_6', 'slot_7', 'slot_8',
+          'slot_9', 'slot_10', 'slot_11', 'slot_12',
+          'slot_13', 'slot_14', 'slot_15', 'slot_16'
+        ])
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+
+    function validCatalogChange(beforeMap, afterMap, allowedIds, spent) {
+      let changed = afterMap.diff(beforeMap).affectedKeys();
+
+      return changed.size() == 1
+        && changed.hasOnly(allowedIds)
+        && (
+          (changed.hasOnly(['rack_1001']) &&
+            afterMap.get('rack_1001', 0) == beforeMap.get('rack_1001', 0) + spent) ||
+          (changed.hasOnly(['rack_1002']) &&
+            afterMap.get('rack_1002', 0) == beforeMap.get('rack_1002', 0) + spent) ||
+          (changed.hasOnly(['rack_1003']) &&
+            afterMap.get('rack_1003', 0) == beforeMap.get('rack_1003', 0) + spent) ||
+          (changed.hasOnly(['rack_1004']) &&
+            afterMap.get('rack_1004', 0) == beforeMap.get('rack_1004', 0) + spent) ||
+          (changed.hasOnly(['rack_1005']) &&
+            afterMap.get('rack_1005', 0) == beforeMap.get('rack_1005', 0) + spent) ||
+          (changed.hasOnly(['rack_1006']) &&
+            afterMap.get('rack_1006', 0) == beforeMap.get('rack_1006', 0) + spent) ||
+          (changed.hasOnly(['miner_2001']) &&
+            afterMap.get('miner_2001', 0) == beforeMap.get('miner_2001', 0) + spent) ||
+          (changed.hasOnly(['miner_2002']) &&
+            afterMap.get('miner_2002', 0) == beforeMap.get('miner_2002', 0) + spent) ||
+          (changed.hasOnly(['miner_2003']) &&
+            afterMap.get('miner_2003', 0) == beforeMap.get('miner_2003', 0) + spent) ||
+          (changed.hasOnly(['miner_2004']) &&
+            afterMap.get('miner_2004', 0) == beforeMap.get('miner_2004', 0) + spent)
+        );
+    }
+
+    function validPurchase() {
+      let before = resource.data;
+      let after = request.resource.data;
+      let spent = before.balance - after.balance;
+
+      return after.diff(before).affectedKeys()
+          .hasOnly(['balance', 'inventory', 'updatedAt'])
+        && after.diff(before).affectedKeys()
+          .hasAll(['balance', 'inventory', 'updatedAt'])
+        && before.balance is int
+        && after.balance is int
+        && spent >= 1
+        && spent <= 99
+        && after.balance >= 0
+        && after.updatedAt == request.time
+        && after.inventory.keys().hasOnly(['racks', 'miners'])
+        && (
+          (
+            validCatalogChange(
+              before.inventory.racks,
+              after.inventory.racks,
+              ['rack_1001', 'rack_1002', 'rack_1003',
+               'rack_1004', 'rack_1005', 'rack_1006'],
+              spent
+            )
+            && after.inventory.miners == before.inventory.miners
+          )
+          ||
+          (
+            validCatalogChange(
+              before.inventory.miners,
+              after.inventory.miners,
+              ['miner_2001', 'miner_2002', 'miner_2003', 'miner_2004'],
+              spent
+            )
+            && after.inventory.racks == before.inventory.racks
+          )
+        );
+    }
+
+
+    // Movimentação de uma mineradora entre inventário e Mini Home.
+    // Primeira etapa de teste: slot_1 / shelf_1 / machine_1.
+    function validMinerMovementFor(minerId) {
+      let before = resource.data;
+      let after = request.resource.data;
+      let beforeSlot = before.room.racks.slot_1;
+      let afterSlot = after.room.racks.slot_1;
+      let beforeShelf = beforeSlot.shelves.shelf_1;
+      let afterShelf = afterSlot.shelves.shelf_1;
+      let beforeCount = before.inventory.miners.get(minerId, 0);
+      let afterCount = after.inventory.miners.get(minerId, 0);
+
+      let installing =
+        beforeCount == afterCount + 1
+        && !beforeShelf.keys().hasAny(['machine_1'])
+        && afterShelf.keys().hasAny(['machine_1'])
+        && afterShelf.machine_1 == {'minerId': minerId};
+
+      let uninstalling =
+        afterCount == beforeCount + 1
+        && beforeShelf.keys().hasAny(['machine_1'])
+        && beforeShelf.machine_1 == {'minerId': minerId}
+        && !afterShelf.keys().hasAny(['machine_1']);
+
+      return after.diff(before).affectedKeys()
+          .hasOnly(['inventory', 'room', 'updatedAt'])
+        && after.diff(before).affectedKeys()
+          .hasAll(['inventory', 'room', 'updatedAt'])
+        && before.balance is int
+        && after.balance == before.balance
+        && after.updatedAt == request.time
+        && before.inventory.racks == after.inventory.racks
+        && after.inventory.diff(before.inventory).affectedKeys()
+          .hasOnly(['miners'])
+        && after.inventory.diff(before.inventory).affectedKeys().size() == 1
+        && after.inventory.miners.diff(before.inventory.miners)
+          .affectedKeys().hasOnly([minerId])
+        && after.inventory.miners.diff(before.inventory.miners)
+          .affectedKeys().size() == 1
+        && beforeCount is int
+        && afterCount is int
+        && beforeCount >= 0
+        && afterCount >= 0
+        && before.room.racks.diff(after.room.racks)
+          .affectedKeys().hasOnly(['slot_1'])
+        && before.room.racks.diff(after.room.racks)
+          .affectedKeys().size() == 1
+        && beforeSlot.modelId != null
+        && afterSlot.modelId == beforeSlot.modelId
+        && beforeSlot.shelves.diff(afterSlot.shelves)
+          .affectedKeys().hasOnly(['shelf_1'])
+        && beforeSlot.shelves.diff(afterSlot.shelves)
+          .affectedKeys().size() == 1
+        && beforeShelf.diff(afterShelf).affectedKeys()
+          .hasOnly(['machine_1'])
+        && beforeShelf.diff(afterShelf).affectedKeys().size() == 1
+        && (installing || uninstalling);
+    }
+
+    function validMinerMovement() {
+      return validMinerMovementFor('miner_2001')
+        || validMinerMovementFor('miner_2002')
+        || validMinerMovementFor('miner_2003')
+        || validMinerMovementFor('miner_2004');
+    }
+
+
+    // Movimentação de racks vazios entre inventário e Mini Home.
+    // Etapa inicial: slot_1 e os quatro modelos ativos.
+    function validRackMovementFor(rackId) {
+      let before = resource.data;
+      let after = request.resource.data;
+      let beforeSlot = before.room.racks.slot_1;
+      let afterSlot = after.room.racks.slot_1;
+      let beforeCount = before.inventory.racks.get(rackId, 0);
+      let afterCount = after.inventory.racks.get(rackId, 0);
+
+      let installing =
+        beforeCount == afterCount + 1
+        && beforeSlot.modelId == null
+        && afterSlot.modelId == rackId;
+
+      let uninstalling =
+        afterCount == beforeCount + 1
+        && beforeSlot.modelId == rackId
+        && afterSlot.modelId == null;
+
+      return after.diff(before).affectedKeys()
+          .hasOnly(['inventory', 'room', 'updatedAt'])
+        && after.diff(before).affectedKeys()
+          .hasAll(['inventory', 'room', 'updatedAt'])
+        && before.balance is int
+        && after.balance == before.balance
+        && after.updatedAt == request.time
+        && after.inventory.diff(before.inventory)
+          .affectedKeys().hasOnly(['racks'])
+        && after.inventory.diff(before.inventory)
+          .affectedKeys().size() == 1
+        && before.inventory.miners == after.inventory.miners
+        && after.inventory.racks.diff(before.inventory.racks)
+          .affectedKeys().hasOnly([rackId])
+        && after.inventory.racks.diff(before.inventory.racks)
+          .affectedKeys().size() == 1
+        && beforeCount is int
+        && afterCount is int
+        && beforeCount >= 0
+        && afterCount >= 0
+        && before.room.racks.diff(after.room.racks)
+          .affectedKeys().hasOnly(['slot_1'])
+        && before.room.racks.diff(after.room.racks)
+          .affectedKeys().size() == 1
+        && beforeSlot.id == afterSlot.id
+        && beforeSlot.shelves == afterSlot.shelves
+        && beforeSlot.diff(afterSlot).affectedKeys()
+          .hasOnly(['modelId'])
+        && beforeSlot.diff(afterSlot).affectedKeys().size() == 1
+        && (installing || uninstalling);
+    }
+
+    function validRackMovement() {
+      return validRackMovementFor('rack_1001')
+        || validRackMovementFor('rack_1002')
+        || validRackMovementFor('rack_1003')
+        || validRackMovementFor('rack_1004');
+    }
+
+
+      function countMinerInShelf(shelf, minerId) {
+        let m1 = shelf.get('machine_1', {});
+        let m2 = shelf.get('machine_2', {});
+        return (m1.get('minerId', '') == minerId ? 1 : 0)
+          + (m2.get('minerId', '') == minerId ? 1 : 0);
+      }
+
+      function countMinerInSlot(slot, minerId) {
+        let shelves = slot.shelves;
+        return countMinerInShelf(shelves.get('shelf_1', {}), minerId)
+          + countMinerInShelf(shelves.get('shelf_2', {}), minerId)
+          + countMinerInShelf(shelves.get('shelf_3', {}), minerId)
+          + countMinerInShelf(shelves.get('shelf_4', {}), minerId);
+      }
+
+      function validShelfForRackRemoval(shelf) {
+        let m1 = shelf.get('machine_1', {});
+        let m2 = shelf.get('machine_2', {});
+        let allowed = [
+          'miner_2001', 'miner_2002', 'miner_2003', 'miner_2004'
+        ];
+
+        return shelf is map
+          && shelf.keys().hasOnly(['machine_1', 'machine_2'])
+          && (
+            !shelf.keys().hasAny(['machine_1'])
+            || (
+              m1 is map
+              && m1.keys().hasOnly(['minerId'])
+              && allowed.hasAny([m1.get('minerId', '')])
+            )
+          )
+          && (
+            !shelf.keys().hasAny(['machine_2'])
+            || (
+              m2 is map
+              && m2.keys().hasOnly(['minerId'])
+              && allowed.hasAny([m2.get('minerId', '')])
+            )
+          );
+      }
+
+      function validOccupiedRackRemoval() {
+        let before = resource.data;
+        let after = request.resource.data;
+        let beforeSlot = before.room.racks.slot_1;
+        let afterSlot = after.room.racks.slot_1;
+        let rackId = beforeSlot.modelId;
+        let rootChanges = after.diff(before).affectedKeys();
+        let inventoryChanges = after.inventory.diff(before.inventory).affectedKeys();
+        let rackChanges = after.inventory.racks.diff(before.inventory.racks).affectedKeys();
+        let roomChanges = before.room.racks.diff(after.room.racks).affectedKeys();
+
+        return rootChanges.hasOnly(['inventory', 'room', 'updatedAt'])
+          && rootChanges.hasAll(['inventory', 'room', 'updatedAt'])
+          && before.balance is int
+          && after.balance == before.balance
+          && after.updatedAt == request.time
+          && inventoryChanges.hasOnly(['racks', 'miners'])
+          && inventoryChanges.hasAll(['racks', 'miners'])
+          && ['rack_1001', 'rack_1002', 'rack_1003', 'rack_1004'].hasAny([rackId])
+          && before.inventory.racks.get(rackId, 0) is int
+          && after.inventory.racks.get(rackId, 0)
+            == before.inventory.racks.get(rackId, 0) + 1
+          && rackChanges.hasOnly([rackId])
+          && rackChanges.size() == 1
+          && after.inventory.miners.diff(before.inventory.miners)
+            .affectedKeys().hasOnly([
+              'miner_2001', 'miner_2002', 'miner_2003', 'miner_2004'
+            ])
+          && before.inventory.miners.get('miner_2001', 0) is int
+          && before.inventory.miners.get('miner_2002', 0) is int
+          && before.inventory.miners.get('miner_2003', 0) is int
+          && before.inventory.miners.get('miner_2004', 0) is int
+          && after.inventory.miners.get('miner_2001', 0)
+            == before.inventory.miners.get('miner_2001', 0)
+              + countMinerInSlot(beforeSlot, 'miner_2001')
+          && after.inventory.miners.get('miner_2002', 0)
+            == before.inventory.miners.get('miner_2002', 0)
+              + countMinerInSlot(beforeSlot, 'miner_2002')
+          && after.inventory.miners.get('miner_2003', 0)
+            == before.inventory.miners.get('miner_2003', 0)
+              + countMinerInSlot(beforeSlot, 'miner_2003')
+          && after.inventory.miners.get('miner_2004', 0)
+            == before.inventory.miners.get('miner_2004', 0)
+              + countMinerInSlot(beforeSlot, 'miner_2004')
+          && roomChanges.hasOnly(['slot_1'])
+          && roomChanges.size() == 1
+          && beforeSlot.id == afterSlot.id
+          && afterSlot.modelId == null
+          && beforeSlot.shelves is map
+          && beforeSlot.shelves.keys().hasOnly([
+            'shelf_1', 'shelf_2', 'shelf_3', 'shelf_4'
+          ])
+          && validShelfForRackRemoval(beforeSlot.shelves.get('shelf_1', {}))
+          && validShelfForRackRemoval(beforeSlot.shelves.get('shelf_2', {}))
+          && validShelfForRackRemoval(beforeSlot.shelves.get('shelf_3', {}))
+          && validShelfForRackRemoval(beforeSlot.shelves.get('shelf_4', {}))
+          && afterSlot.shelves == {
+            'shelf_1': {},
+            'shelf_2': {},
+            'shelf_3': {},
+            'shelf_4': {}
+          };
+      }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == userId
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.keys().hasOnly([
+          'uid',
+          'email',
+          'displayName',
+          'photoURL',
+          'playerId',
+          'createdAt'
+        ]);
+
+      allow update: if isOwner(userId)
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly(['playerId']);
+
+      allow delete: if false;
+
+      match /game/state {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && validInitialState();
+        allow update: if isOwner(userId) && (
+          (
+            resource.data.room.racks.slot_1.modelId
+              != request.resource.data.room.racks.slot_1.modelId
+            && resource.data.room.racks.slot_1.shelves
+              != request.resource.data.room.racks.slot_1.shelves
+            && validOccupiedRackRemoval()
+          )
+          ||
+          (
+            resource.data.room.racks.slot_1.modelId
+              != request.resource.data.room.racks.slot_1.modelId
+            && resource.data.room.racks.slot_1.shelves
+              == request.resource.data.room.racks.slot_1.shelves
+            && validRackMovement()
+          )
+          ||
+          (
+            resource.data.room.racks.slot_1.modelId
+              == request.resource.data.room.racks.slot_1.modelId
+            && (validPurchase() || validMinerMovement())
+          )
+        );
+        allow delete: if false;
+      }
+
+      match /game/{document=**} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

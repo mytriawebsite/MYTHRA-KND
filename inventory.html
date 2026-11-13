@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MYTRIA - Inventário</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: sans-serif;
+            background: #060b18;
+            color: #f8fafc;
+            padding-bottom: 50px;
+            overflow-x: hidden;
+        }
+
+        .inv-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 10px auto;
+            padding: 0 6px;
+        }
+
+        .inv-header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #1e293b;
+            padding-bottom: 8px;
+        }
+
+        .inv-title {
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: #00f2ff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .category-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .category-card {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .category-card:hover {
+            border-color: #00f2ff;
+            background: #162032;
+        }
+
+        .cat-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .cat-info i { color: #00f2ff; }
+
+        .sub-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            gap: 6px;
+        }
+
+        .back-btn {
+            background: #1e293b;
+            color: #94a3b8;
+            border: none;
+            padding: 5px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 6px;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .items-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 12px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .items-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 12px;
+            }
+        }
+
+        .item-box {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .item-name {
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #fff;
+            text-align: center;
+            margin: 4px 0;
+        }
+
+        .item-qty {
+            font-size: 0.7rem;
+            color: #84cc16;
+            background: #162032;
+            padding: 4px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+            width: 100%;
+        }
+
+        .item-info {
+            font-size: 0.65rem;
+            color: #94a3b8;
+            text-align: center;
+            margin-top: 4px;
+        }
+
+        #subview-container { display: none; }
+    </style>
+</head>
+
+<body>
+    <script type="module" src="header-template.js"></script>
+
+    <div class="inv-container">
+        <div id="main-inventory-view">
+            <div class="inv-header-bar">
+                <div class="inv-title">
+                    <i class="fa-solid fa-box-archive"></i>
+                    INVENTÁRIO DO JOGADOR
+                </div>
+            </div>
+
+            <div class="category-list">
+                <div class="category-card" onclick="abrirCategoria('miners')">
+                    <div class="cat-info">
+                        <i class="fa-solid fa-server"></i> Miners
+                    </div>
+                </div>
+
+                <div class="category-card" onclick="abrirCategoria('racks')">
+                    <div class="cat-info">
+                        <i class="fa-solid fa-layer-group"></i> Racks (Estantes)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="subview-container">
+            <div class="sub-header">
+                <button class="back-btn" onclick="voltarMain()">
+                    <i class="fa-solid fa-arrow-left"></i> Voltar
+                </button>
+                <div class="inv-title" id="subview-title">INVENTÁRIO</div>
+            </div>
+
+            <div class="items-grid" id="items-grid-content"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import {
+            auth,
+            db,
+            onAuthStateChanged,
+            doc,
+            onSnapshot
+        } from "./firebase.js";
+
+        let userInventory = {
+            racks: {},
+            miners: {}
+        };
+
+        let catalogData = {
+            racks: {},
+            miners: {}
+        };
+
+        let currentUser = null;
+        let inventoryReady = false;
+        let inventoryError = null;
+        let currentCategory = null;
+        let catalogReady = false;
+        let inventoryUnsubscribe = null;
+
+        // Acompanhar o inventário em tempo real no Firestore
+        onAuthStateChanged(auth, (user) => {
+            if (inventoryUnsubscribe) {
+                inventoryUnsubscribe();
+                inventoryUnsubscribe = null;
+            }
+
+            currentUser = user;
+            inventoryReady = false;
+            inventoryError = null;
+
+            if (!user) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            const stateRef = doc(
+                db,
+                "users",
+                user.uid,
+                "game",
+                "state"
+            );
+
+            inventoryUnsubscribe = onSnapshot(
+                stateRef,
+                (stateSnap) => {
+                    const state = stateSnap.exists()
+                        ? stateSnap.data()
+                        : {};
+
+                    const inventory = state.inventory || {};
+
+                    userInventory = {
+                        racks: inventory.racks || {},
+                        miners: inventory.miners || {}
+                    };
+
+                    inventoryReady = true;
+                    inventoryError = null;
+
+                    console.log(
+                        "Inventário atualizado pelo Firestore:",
+                        userInventory
+                    );
+
+                    if (currentCategory && catalogReady) {
+                        renderizarCategoria(currentCategory);
+                    }
+                },
+                (error) => {
+                    inventoryError = error;
+                    inventoryReady = true;
+
+                    console.error(
+                        "Erro ao acompanhar inventário:",
+                        error
+                    );
+
+                    const gridEl = document.getElementById(
+                        "items-grid-content"
+                    );
+
+                    if (gridEl && currentCategory) {
+                        gridEl.innerHTML = "";
+                    }
+                }
+            );
+        });
+
+        // Carregar os catálogos
+        async function loadCatalog() {
+            if (catalogReady) return;
+
+            const [rRes, mRes] = await Promise.all([
+                fetch("items-racks.json"),
+                fetch("items-miners.json")
+            ]);
+
+            if (!rRes.ok || !mRes.ok) {
+                throw new Error("Erro ao carregar os catálogos.");
+            }
+
+            const rJson = await rRes.json();
+            const mJson = await mRes.json();
+
+            catalogData.racks = rJson.items || {};
+            catalogData.miners = mJson.items || {};
+
+            catalogReady = true;
+        }
+
+        // Voltar à tela principal
+        function voltarMain() {
+            currentCategory = null;
+
+            document.getElementById("subview-container").style.display = "none";
+            document.getElementById("main-inventory-view").style.display = "block";
+        }
+
+        // Mostrar somente itens que o jogador possui
+        function renderizarCategoria(cat) {
+            const titleEl = document.getElementById("subview-title");
+            const gridEl = document.getElementById("items-grid-content");
+
+            if (!inventoryReady || inventoryError) {
+                gridEl.innerHTML = "";
+                return;
+            }
+
+            const isMiner = cat === "miners";
+            const catalog = isMiner
+                ? catalogData.miners
+                : catalogData.racks;
+
+            const ownedItems = userInventory[cat] || {};
+
+            titleEl.innerText = isMiner
+                ? "INVENTÁRIO: MINERADORAS"
+                : "INVENTÁRIO: ESTANTES (RACKS)";
+
+            const items = Object.entries(catalog).filter(([itemId]) => {
+                return Number(ownedItems[itemId] || 0) > 0;
+            });
+
+            // Sem itens: deixar a área completamente vazia
+            if (items.length === 0) {
+                gridEl.innerHTML = "";
+                return;
+            }
+
+            gridEl.innerHTML = items.map(([itemId, meta]) => {
+                const qty = Number(ownedItems[itemId] || 0);
+
+                const assetHtml = meta.asset
+                    ? `<img
+                        src="${meta.asset}"
+                        alt="${meta.name}"
+                        style="max-height:${isMiner ? "45px" : "50px"}; max-width:100%; object-fit:contain;"
+                    >`
+                    : "";
+
+                const detail = isMiner
+                    ? (meta.hashPower || "Potência não definida no catálogo")
+                    : `${meta.slots || 0} slots`;
+
+                return `
+                    <div class="item-box">
+                        <div class="item-name">${meta.name}</div>
+
+                        <div style="height:60px; display:flex; align-items:center; justify-content:center;">
+                            ${assetHtml}
+                        </div>
+
+                        <div class="item-info">${detail}</div>
+
+                        <div class="item-qty" style="margin-top:6px;">
+                            Qtd: ${qty}
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        // Abrir categoria
+        async function abrirCategoria(cat) {
+            if (!currentUser) {
+                alert("Você precisa estar conectado.");
+                return;
+            }
+
+            if (!inventoryReady) {
+                alert("Aguarde o carregamento do inventário.");
+                return;
+            }
+
+            if (inventoryError) {
+                alert("Não foi possível carregar seu inventário do Firebase.");
+                return;
+            }
+
+            try {
+                await loadCatalog();
+
+                currentCategory = cat;
+
+                document.getElementById("main-inventory-view").style.display = "none";
+                document.getElementById("subview-container").style.display = "block";
+
+                renderizarCategoria(cat);
+
+            } catch (error) {
+                console.error("Erro ao abrir categoria:", error);
+                alert("Não foi possível abrir o inventário.");
+            }
+        }
+
+        // Preservar os onclick do HTML
+        window.abrirCategoria = abrirCategoria;
+        window.voltarMain = voltarMain;
+    </script>
+</body>
+</html>

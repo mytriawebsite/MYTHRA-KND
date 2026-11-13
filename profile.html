@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MYTRIA - Perfil do Astronauta</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: sans-serif; background: #060b18; color: #f8fafc; margin: 0; padding-bottom: 50px; }
+    .profile-container { max-width: 800px; margin: 20px auto; padding: 20px; box-sizing: border-box; }
+    .card-box { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+    h2, h3 { color: #00f2ff; margin-top: 0; display: flex; align-items: center; gap: 10px; font-size: 1.2rem; }
+    .profile-header-flex { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+    .avatar-preview { width: 90px; height: 90px; border-radius: 50%; border: 2px solid #00f2ff; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #00f2ff; flex-shrink: 0; }
+    .avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .info-group { flex: 1; min-width: 220px; }
+    .info-group label { font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px; }
+    .info-group p { font-size: 1rem; font-weight: bold; margin: 0 0 10px 0; color: #fff; }
+    
+    .form-control { width: 100%; padding: 10px; margin-top: 6px; margin-bottom: 12px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #fff; box-sizing: border-box; font-size: 0.95rem; }
+    .btn-action { background: #00f2ff; color: #060b18; font-weight: bold; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
+    .btn-action:hover { background: #00c2cc; }
+    
+    /* Grid de Avatares Sci-Fi Prontos */
+    .avatar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 10px; max-height: 200px; overflow-y: auto; padding: 10px; background: #080e1d; border-radius: 8px; border: 1px solid #1e293b; margin-bottom: 12px; }
+    .avatar-option { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #334155; cursor: pointer; object-fit: cover; transition: 0.2s; }
+    .avatar-option:hover, .avatar-option.selected { border-color: #00f2ff; transform: scale(1.08); }
+
+    /* Grid de Itens Cosméticos / Eventos */
+    .cosmetics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 12px; margin-top: 10px; }
+    .cosmetic-slot { background: #1e293b; border: 2px dashed #334155; border-radius: 10px; height: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 6px; position: relative; }
+    .cosmetic-slot.unlocked { border-style: solid; border-color: #00f2ff; background: #0f172a; }
+    .cosmetic-slot i { font-size: 1.5rem; color: #64748b; margin-bottom: 4px; }
+    .cosmetic-slot.unlocked i { color: #00f2ff; }
+    .cosmetic-slot span { font-size: 0.7rem; color: #94a3b8; }
+
+    #status-msg { font-size: 0.85rem; margin-top: 8px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <!-- O Header Modular Compartilhado será inserido automaticamente aqui -->
+  <script type="module" src="header-template.js"></script>
+
+  <div class="profile-container">
+    
+    <!-- CARD 1: Informações e Identidade do Astronauta -->
+    <div class="card-box">
+      <h2><i class="fa-solid fa-id-card"></i> Identidade do Astronauta</h2>
+      <div class="profile-header-flex">
+        <div class="avatar-preview" id="profile-avatar-display">
+          <i class="fa-solid fa-user-astronaut"></i>
+        </div>
+        <div class="info-group">
+          <label>E-MAIL DA CONTA</label>
+          <p id="profile-email">Carregando...</p>
+          <label>ID DO ASTRONAUTA (EXCLUSIVO)</label>
+          <p id="profile-playerid" style="color: #00f2ff;">---</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARD 2: Editar Nome e Avatar -->
+    <div class="card-box">
+      <h2><i class="fa-solid fa-user-pen"></i> Personalizar Perfil</h2>
+      
+      <label>Nome do Jogador</label>
+      <input type="text" id="input-displayname" class="form-control" placeholder="Seu nome no jogo">
+
+      <label>Escolher Avatar Sci-Fi Temático:</label>
+      <div class="avatar-grid" id="preset-avatars">
+        <!-- Avatares gerados via script -->
+      </div>
+
+      <label>Ou Enviar Imagem da Galeria:</label>
+      <input type="file" id="input-file-avatar" accept="image/*" class="form-control" style="padding: 6px;">
+
+      <button class="btn-action" id="btn-save-profile">Salvar Alterações do Perfil</button>
+      <div id="status-msg"></div>
+    </div>
+
+    <!-- CARD 3: Segurança (Troca de Senha por E-mail) -->
+    <div class="card-box">
+      <h2><i class="fa-solid fa-shield-halved"></i> Segurança e Senha</h2>
+      <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 0;">Para alterar sua senha, enviaremos um link de redefinição seguro para o seu e-mail cadastrado.</p>
+      <button class="btn-action" id="btn-reset-password" style="background: #f59e0b; color: #000;">Enviar E-mail de Redefinição de Senha</button>
+      <div id="password-msg" style="font-size: 0.85rem; margin-top: 8px; font-weight: bold;"></div>
+    </div>
+
+    <!-- CARD 4: Espaço de Cosméticos e Itens de Evento -->
+    <div class="card-box">
+      <h2><i class="fa-solid fa-shirt"></i> Guarda-Roupa / Itens de Eventos</h2>
+      <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 0;">Chapéus, roupas espaciais e acessórios desbloqueados em eventos futuros aparecerão aqui.</p>
+      
+      <div class="cosmetics-grid">
+        <div class="cosmetic-slot unlocked">
+          <i class="fa-solid fa-hat-cowboy"></i>
+          <span>Capacete Padrão</span>
+        </div>
+        <div class="cosmetic-slot">
+          <i class="fa-solid fa-vest"></i>
+          <span>Traje V.1 (Locked)</span>
+        </div>
+        <div class="cosmetic-slot">
+          <i class="fa-solid fa-glasses"></i>
+          <span>Visor Tático (Locked)</span>
+        </div>
+        <div class="cosmetic-slot">
+          <i class="fa-solid fa-medal"></i>
+          <span>Medalha Éxodo</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Firebase Compat Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!firebase.apps.length) {
+        firebase.initializeApp({
+          apiKey: "AIzaSyDbWMI07qlMj54Fc73NaJwJkTDI5zenKPk",
+          authDomain: "mytria02.firebaseapp.com",
+          projectId: "mytria02",
+          storageBucket: "mytria02.firebasestorage.app",
+          messagingSenderId: "533631860859",
+          appId: "1:533631860859:web:125aece9d9c409fff7a2de",
+          measurementId: "G-H9VHXQJ0YD"
+        });
+      }
+
+      const auth = firebase.auth();
+      const db = firebase.firestore();
+
+      const emailEl = document.getElementById("profile-email");
+      const playerIdEl = document.getElementById("profile-playerid");
+      const nameInput = document.getElementById("input-displayname");
+      const avatarDisplay = document.getElementById("profile-avatar-display");
+      const presetContainer = document.getElementById("preset-avatars");
+      const statusMsg = document.getElementById("status-msg");
+      const passwordMsg = document.getElementById("password-msg");
+
+      let selectedPhotoURL = "";
+
+      // Lista de avatares temáticos sci-fi (Exemplo usando URLs públicas de avatares espaciais/estilizados)
+      const sciFiAvatars = [
+        "https://api.dicebear.com/7.x/bottts/svg?seed=Astronaut1",
+        "https://api.dicebear.com/7.x/bottts/svg?seed=Astronaut2",
+        "https://api.dicebear.com/7.x/bottts/svg?seed=MytriaCore",
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=SpaceMale1",
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=SpaceMale2",
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=SpaceMale3",
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=SpaceFemale1",
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=SpaceFemale2",
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=CyberPilot",
+        "https://api.dicebear.com/7.x/bottts/svg?seed=AndroidX",
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=Commander01",
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=Scout09"
+      ];
+
+      // Renderizar avatares na grade
+      sciFiAvatars.forEach(url => {
+        const img = document.createElement("img");
+        img.src = url;
+        img.className = "avatar-option";
+        img.onclick = () => {
+          document.querySelectorAll(".avatar-option").forEach(i => i.classList.remove("selected"));
+          img.classList.add("selected");
+          selectedPhotoURL = url;
+          avatarDisplay.innerHTML = `<img src="${url}">`;
+        };
+        presetContainer.appendChild(img);
+      });
+
+      // Carregar dados atuais do usuário logado
+      auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+          window.location.href = "login.html";
+          return;
+        }
+
+        emailEl.innerText = user.email;
+        nameInput.value = user.displayName || user.email.split("@")[0];
+        
+        if (user.photoURL) {
+          selectedPhotoURL = user.photoURL;
+          avatarDisplay.innerHTML = `<img src="${user.photoURL}">`;
+        }
+
+        try {
+          const docRef = db.collection("users").doc(user.uid);
+          const docSnap = await docRef.get();
+          if (docSnap.exists) {
+            const data = docSnap.data();
+            if (data.playerId) playerIdEl.innerText = data.playerId;
+            if (data.displayName) nameInput.value = data.displayName;
+            if (data.photoURL) {
+              selectedPhotoURL = data.photoURL;
+              avatarDisplay.innerHTML = `<img src="${data.photoURL}">`;
+            }
+          }
+        } catch (e) {
+          console.error("Erro ao carregar Firestore:", e);
+        }
+      });
+
+      // Upload de imagem da galeria (convertida para Base64 para salvar no Firestore)
+      document.getElementById("input-file-avatar").onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (uploadEvent) => {
+            selectedPhotoURL = uploadEvent.target.result;
+            avatarDisplay.innerHTML = `<img src="${selectedPhotoURL}">`;
+            statusMsg.style.color = "#00f2ff";
+            statusMsg.innerText = "Imagem carregada da galeria com sucesso!";
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+
+      // Salvar Alterações
+      document.getElementById("btn-save-profile").onclick = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const newName = nameInput.value.trim();
+        if (!newName) {
+          statusMsg.style.color = "#ef4444";
+          statusMsg.innerText = "O nome do jogador não pode estar vazio!";
+          return;
+        }
+
+        statusMsg.style.color = "#f59e0b";
+        statusMsg.innerText = "Salvando alterações...";
+
+        try {
+          // Atualiza no Firebase Auth
+          await user.updateProfile({
+            displayName: newName,
+            photoURL: selectedPhotoURL
+          });
+
+          // Atualiza no Firestore
+          await db.collection("users").doc(user.uid).set({
+            displayName: newName,
+            photoURL: selectedPhotoURL
+          }, { merge: true });
+
+          statusMsg.style.color = "#84cc16";
+          statusMsg.innerText = "Perfil atualizado com sucesso! Atualize a página se necessário.";
+          
+          setTimeout(() => {
+            window.location.reload();
+          }, 1200);
+        } catch (err) {
+          statusMsg.style.color = "#ef4444";
+          statusMsg.innerText = "Erro ao salvar: " + err.message;
+        }
+      };
+
+      // Solicitar Troca de Senha por E-mail
+      document.getElementById("btn-reset-password").onclick = async () => {
+        const user = auth.currentUser;
+        if (!user || !user.email) return;
+
+        try {
+          await auth.sendPasswordResetEmail(user.email);
+          passwordMsg.style.color = "#84cc16";
+          passwordMsg.innerText = `E-mail de redefinição de senha enviado para ${user.email}. Verifique sua caixa de entrada!`;
+        } catch (err) {
+          passwordMsg.style.color = "#ef4444";
+          passwordMsg.innerText = "Erro ao enviar e-mail: " + err.message;
+        }
+      };
+
+    });
+  </script>
+</body>
+</html>

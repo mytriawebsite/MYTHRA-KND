@@ -1,0 +1,29 @@
+{
+  "category": "racks",
+  "items": {
+    "rack_1001": {
+      "name": "Rack Ciano",
+      "rarity": "Common",
+      "slots": 4,
+      "asset": "assets/racks/rack_1001_azul.png"
+    },
+    "rack_1002": {
+      "name": "Rack Azul",
+      "rarity": "Common",
+      "slots": 4,
+      "asset": "assets/racks/rack_1002_vermelho.png"
+    },
+    "rack_1003": {
+      "name": "Rack Roxo",
+      "rarity": "Common",
+      "slots": 4,
+      "asset": "assets/racks/rack_1003_roxo.png"
+    },
+    "rack_1004": {
+      "name": "Rack Verde",
+      "rarity": "Common",
+      "slots": 4,
+      "asset": "assets/racks/rack_1004_verde.png"
+    }
+  }
+}

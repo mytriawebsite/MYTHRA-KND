@@ -1,0 +1,217 @@
+.container {
+  padding: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Banner Mining Pass */
+.banner-pass {
+  background: var(--bg-card);
+  border: 1px solid var(--accent-orange);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.banner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 14px;
+  color: var(--accent-orange);
+}
+
+.banner-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.banner-actions button {
+  flex: 1;
+  padding: 10px;
+  font-size: 13px;
+}
+
+.btn-cyan {
+  background-color: var(--accent-cyan);
+  color: #000;
+}
+
+.btn-orange {
+  background-color: var(--accent-orange);
+  color: #fff;
+}
+
+.btn-lime {
+  background-color: var(--accent-lime);
+  color: #000;
+}
+
+/* Energy Card */
+.energy-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.energy-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.energy-bars {
+  display: flex;
+  gap: 4px;
+}
+
+.energy-bar {
+  flex: 1;
+  height: 10px;
+  background: var(--bg-secondary);
+  border-radius: 2px;
+  border: 1px solid var(--border-color);
+}
+
+.energy-bar.active {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+}
+
+/* Quests Section */
+.quests-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.quests-tabs {
+  display: flex;
+  gap: 16px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.quest-tab {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 0;
+}
+
+.quest-tab.active {
+  color: var(--accent-lime);
+  border-bottom: 2px solid var(--accent-lime);
+  padding-bottom: 6px;
+}
+
+.quest-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-secondary);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.quest-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.quest-reward {
+  color: var(--accent-orange);
+}
+
+.quest-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #111;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.quest-progress-fill {
+  width: 100%;
+  height: 100%;
+  background: var(--accent-lime);
+}
+
+.quest-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Telemetria */
+.telemetry-section-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--accent-cyan);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.telemetry-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.telemetry-info h4 {
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.telemetry-info p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.bonus-tag {
+  font-size: 10px;
+  background: rgba(118, 255, 3, 0.15);
+  color: var(--accent-lime);
+  border: 1px solid var(--accent-lime);
+  padding: 2px 6px;
+  border-radius: 4px;
+}

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MYTRIA - Home Simulator</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-main: #04060b; --bg-card: #080e1d; --bg-hover: #101c38;
+      --accent-green: #84cc16; --accent-cyan: #00f2ff; --accent-gold: #f59e0b;
+      --text-main: #f8fafc; --text-muted: #94a3b8; --border-color: #1e293b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+    main { padding: 12px; width: 100%; max-width: 1200px; margin: 0 auto; flex: 1; display: flex; flex-direction: column; gap: 12px; }
+    .card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; }
+    .official-banner-container { width: 100%; border: 2px solid var(--accent-cyan); border-radius: 12px; overflow: hidden; background: #000; display: flex; }
+    .official-banner-img { width: 100%; height: auto; display: block; object-fit: cover; }
+    .mining-pass { display: flex; justify-content: space-between; align-items: center; background: linear-gradient(90deg, #1e1b4b, #131b2e); border: 1px solid #f59e0b; }
+    .pass-info { display: flex; align-items: center; gap: 12px; }
+    .pass-info i { color: #f59e0b; font-size: 1.4rem; }
+    .btn-primary { background: linear-gradient(135deg, #d97706, #b45309); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
+    .energy-box { display: flex; flex-direction: column; gap: 10px; }
+    .energy-header { display: flex; justify-content: space-between; font-size: 0.9rem; }
+    .energy-bars { display: flex; gap: 6px; }
+    .energy-bar { flex: 1; height: 8px; background-color: var(--bg-main); border-radius: 4px; border: 1px solid var(--border-color); }
+    .energy-actions { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
+    .btn-claim-energy { background-color: var(--accent-green); color: #0f172a; border: none; padding: 8px 18px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; cursor: pointer; }
+    .btn-to-market { background-color: var(--accent-cyan); color: #0f172a; border: none; padding: 8px 18px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; cursor: pointer; text-decoration: none; }
+    .stats-list { display: flex; flex-direction: column; gap: 10px; }
+    .stat-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: var(--text-muted); }
+    .stat-value { color: var(--text-main); font-weight: bold; }
+    .tabs-header { display: flex; gap: 20px; border-bottom: 1px solid var(--border-color); margin-bottom: 12px; padding-bottom: 8px; }
+    .tab-btn { background: none; border: none; color: var(--text-muted); font-size: 0.95rem; font-weight: bold; cursor: pointer; }
+    .tab-btn.active { color: var(--accent-green); border-bottom: 2px solid var(--accent-green); padding-bottom: 4px; }
+    .task-card { background-color: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .task-left { display: flex; align-items: center; gap: 10px; }
+    .task-icon { width: 34px; height: 34px; background: #1e293b; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #eab308; font-size: 0.8rem; border: 1px solid #334155; font-weight: bold; }
+    .task-info h4 { font-size: 0.85rem; margin-bottom: 2px; }
+    .task-info p { font-size: 0.75rem; color: var(--text-muted); }
+    .btn-completed { background-color: var(--accent-green); color: #0f172a; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; }
+    .rooms-selector-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+    .room-tab-btn { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+    .room-tab-btn.active { background: #0f172a; border-color: var(--accent-cyan); color: var(--accent-cyan); }
+    .room-header-external { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 10px; }
+    .room-title { font-size: 0.9rem; font-weight: bold; color: var(--accent-cyan); display: flex; align-items: center; gap: 8px; }
+    .status-online { background: rgba(132, 204, 22, 0.2); border: 1px solid var(--accent-green); color: var(--accent-green); padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+    .mining-room-container { width: 100%; min-height: 700px; background-image: url('Salademineracao.jpg'); background-size: 100% 100%; background-repeat: no-repeat; background-position: center top; border: 2px solid var(--accent-cyan); border-radius: 12px; padding: 12px; position: relative; overflow: hidden; box-shadow: 0 0 25px rgba(0, 242, 255, 0.2); display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; }
+    .room-decoration-area { width: 100%; height: 155px; min-height: 155px; position: relative; z-index: 2; border: 1px dashed rgba(0, 242, 255, 0.13); border-radius: 8px; background: rgba(4, 10, 20, 0.12); }
+    .room-grid-layer { width: 100%; min-height: 510px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 165px; align-content: end; justify-items: center; gap: 5px; z-index: 2; }
+    @media (min-width: 1000px) {
+      .mining-room-container { min-height: 900px; }
+      .room-decoration-area { height: 230px; min-height: 230px; }
+    }
+  </style>
+  <!-- ESTILOS DE CALIBRAÇÃO DINÂMICA AO VIVO -->
+  <style id="admin-shelf-adjustments"></style>
+</head>
+<body>
+  <div id="header-container"></div>
+
+  <main>
+    <div class="official-banner-container">
+      <img src="banner.jpg" alt="MYTRIA: Projeto Éxodo" class="official-banner-img">
+    </div>
+    <div class="card mining-pass">
+      <div class="pass-info">
+        <i class="fa-solid fa-gem"></i>
+        <div>
+          <div style="font-size: 0.9rem; font-weight: bold;">Mining Pass (Season 1)</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">60D 00:00:00</div>
+        </div>
+      </div>
+      <button class="btn-primary">Go To Pass</button>
+    </div>
+    <div class="card energy-box">
+      <div class="energy-header">
+        <span style="display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-bolt" style="color: var(--accent-green);"></i> Energy 24:00:00</span>
+        <span style="color: var(--accent-cyan); font-weight: bold;">Daily Energy</span>
+      </div>
+      <div class="energy-bars">
+        <div class="energy-bar"></div><div class="energy-bar"></div><div class="energy-bar"></div>
+        <div class="energy-bar"></div><div class="energy-bar"></div><div class="energy-bar"></div>
+      </div>
+      <div class="energy-actions">
+        <button class="btn-claim-energy">Claim</button>
+        <a href="market.html" class="btn-to-market">To Market</a>
+      </div>
+    </div>
+    <div class="card stats-list">
+      <div class="stat-item"><span>My total power</span><span class="stat-value" id="my-total-power">0 Gh/s</span></div>
+      <div class="stat-item"><span>Total pools power</span><span class="stat-value" id="total-pools-power">0 Gh/s</span></div>
+      <div class="stat-item"><span>My pools</span><span class="stat-value">0/0</span></div>
+      <div class="stat-item"><span>Next block in</span><span class="stat-value" id="next-block-timer">05:00</span></div>
+    </div>
+    <div class="card">
+      <div class="tabs-header">
+        <button class="tab-btn active">Daily Quests</button>
+        <button class="tab-btn" style="color: var(--text-muted);">Weekly Quests</button>
+      </div>
+      <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;"><i class="fa-regular fa-clock"></i> 24:00:00</div>
+      <div class="task-card">
+        <div class="task-left">
+          <div class="task-icon">MTG</div>
+          <div class="task-info"><h4>Login diário</h4><p>Consiga 0 MTG</p></div>
+        </div>
+        <button class="btn-completed">Claim</button>
+      </div>
+    </div>
+    <div class="rooms-selector-bar">
+      <button class="room-tab-btn active" onclick="switchRoom(1)"><i class="fa-solid fa-globe"></i> 1. Estação Terra</button>
+      <button class="room-tab-btn" onclick="switchRoom(2)"><i class="fa-solid fa-lock"></i> 2. Base Lunar (50 MYT)</button>
+      <button class="room-tab-btn" onclick="switchRoom(3)"><i class="fa-solid fa-lock"></i> 3. Base Marte (50 MYT)</button>
+      <button class="room-tab-btn" onclick="switchRoom(4)"><i class="fa-solid fa-lock"></i> 4. Lua de Júpiter (50 MYT)</button>
+      <button class="room-tab-btn" onclick="switchRoom(5)"><i class="fa-solid fa-lock"></i> 5. Lua de Saturno (50 MYT)</button>
+    </div>
+    <div class="room-header-external">
+      <div class="room-title" id="roomTitle"><i class="fa-solid fa-satellite"></i> ESTAÇÃO ESPACIAL ORBITAL (TERRA)</div>
+      <span class="status-online">ONLINE</span>
+    </div>
+    <div class="mining-room-container">
+      <div class="room-decoration-area" id="roomDecorationArea"></div>
+      <div class="room-grid-layer" id="roomContent"></div>
+    </div>
+  </main>
+
+  <!-- PAINEL FLUTUANTE DE CALIBRAÇÃO IGUAL AO MINI ROOM -->
+  <div id="home-calibration-panel" style="position: fixed; bottom: 12px; right: 12px; background: #0b1725; border: 2px solid #00f2ff; border-radius: 12px; padding: 12px; z-index: 99999; color: #fff; font-size: 11px; max-width: 250px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+    <div style="font-weight: bold; color: #00f2ff; margin-bottom: 6px; display: flex; justify-content: space-between;">
+      <span>CALIBRADOR AO VIVO</span>
+      <button onclick="document.getElementById('home-calibration-panel').style.display='none'" style="background:none; border:none; color:#ff4444; font-weight:bold; cursor:pointer;">×</button>
+    </div>
+    <div style="margin-bottom: 4px; border-top: 1px solid #1e293b; padding-top: 4px;"><b>Eixo X (Slots Quadrados):</b></div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 3px;"><span>Slot Esq (0): <b id="lbl-x0">0px</b></span><div><button onclick="adjustHomeX(0, -1)" style="padding:2px 6px;">-</button><button onclick="adjustHomeX(0, 1)" style="padding:2px 6px;">+</button></div></div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span>Slot Dir (1): <b id="lbl-x1">-4px</b></span><div><button onclick="adjustHomeX(1, -1)" style="padding:2px 6px;">-</button><button onclick="adjustHomeX(1, 1)" style="padding:2px 6px;">+</button></div></div>
+    <div style="margin-bottom: 4px; border-top: 1px solid #1e293b; padding-top: 4px;"><b>Eixo Y (Prateleiras):</b></div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>Prat 1: <b id="lbl-y0">-7px</b></span><div><button onclick="adjustHomeY(0, -1)" style="padding:2px 6px;">-</button><button onclick="adjustHomeY(0, 1)" style="padding:2px 6px;">+</button></div></div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>Prat 2: <b id="lbl-y1">-10px</b></span><div><button onclick="adjustHomeY(1, -1)" style="padding:2px 6px;">-</button><button onclick="adjustHomeY(1, 1)" style="padding:2px 6px;">+</button></div></div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>Prat 3: <b id="lbl-y2">-14px</b></span><div><button onclick="adjustHomeY(2, -1)" style="padding:2px 6px;">-</button><button onclick="adjustHomeY(2, 1)" style="padding:2px 6px;">+</button></div></div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span>Prat 4: <b id="lbl-y3">-19px</b></span><div><button onclick="adjustHomeY(3, -1)" style="padding:2px 6px;">-</button><button onclick="adjustHomeY(3, 1)" style="padding:2px 6px;">+</button></div></div>
+    <button onclick="exportHomeCalib()" style="width:100%; background:#84cc16; color:#0f172a; border:none; padding:6px; border-radius:6px; font-weight:bold; cursor:pointer;">Exportar / Salvar</button>
+  </div>
+
+  <script src="header-template.js" type="module"></script>
+  <script src="auth-guard.js" type="module"></script>
+  <script src="mining-room.js"></script>
+  <script>
+    function switchRoom(roomNumber) {
+      const buttons = document.querySelectorAll('.room-tab-btn');
+      const roomTitle = document.getElementById('roomTitle');
+      if (roomNumber > 1) { alert("Esta sala está bloqueada! Custo para desbloquear: 50 MYT."); return; }
+      buttons.forEach((btn, index) => {
+        if (index + 1 === roomNumber) btn.classList.add('active'); else btn.classList.remove('active');
+      });
+      if (roomNumber === 1) roomTitle.innerHTML = `<i class="fa-solid fa-satellite"></i> ESTAÇÃO ESPACIAL ORBITAL (TERRA)`;
+    }
+
+    let liveY = JSON.parse(localStorage.getItem('mytria_shelf_offsets')) || [-7, -10, -14, -19];
+    let liveX = JSON.parse(localStorage.getItem('mytria_slot_x_offsets')) || [0, -4];
+
+    function applyDynamicStyles() {
+      const styleBlock = document.getElementById('admin-shelf-adjustments');
+      if (styleBlock) {
+        styleBlock.innerHTML = `
+          .shelf-row-1 { transform: translateY(${liveY[0]}px) !important; }
+          .shelf-row-2 { transform: translateY(${liveY[1]}px) !important; }
+          .shelf-row-3 { transform: translateY(${liveY[2]}px) !important; }
+          .shelf-row-4 { transform: translateY(${liveY[3]}px) !important; }
+        `;
+      }
+    }
+
+    function updateHomeCalibUI() {
+      for(let i=0; i<4; i++) {
+        const el = document.getElementById(`lbl-y${i}`);
+        if(el) el.textContent = liveY[i] + 'px';
+      }
+      document.getElementById('lbl-x0').textContent = liveX[0] + 'px';
+      document.getElementById('lbl-x1').textContent = liveX[1] + 'px';
+      applyDynamicStyles();
+    }
+
+    function adjustHomeY(index, delta) {
+      liveY[index] += delta;
+      localStorage.setItem('mytria_shelf_offsets', JSON.stringify(liveY));
+      updateHomeCalibUI();
+    }
+
+    function adjustHomeX(index, delta) {
+      liveX[index] += delta;
+      localStorage.setItem('mytria_slot_x_offsets', JSON.stringify(liveX));
+      updateHomeCalibUI();
+      if(typeof renderMiningRoom === 'function') renderMiningRoom();
+    }
+
+    function exportHomeCalib() {
+      alert("Calibração salva!\nShelf Y: " + JSON.stringify(liveY) + "\nSlot X: " + JSON.stringify(liveX));
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      updateHomeCalibUI();
+    });
+  </script>
+</body>
+</html>

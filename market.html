@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MYTRIA - Loja Oficial</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: sans-serif;
+      background: #060b18;
+      color: #f8fafc;
+      padding-bottom: 50px;
+      overflow-x: hidden;
+    }
+
+    .market-container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 10px auto;
+      padding: 0 6px;
+    }
+
+    .market-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 8px;
+    }
+
+    .market-title {
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: #00f2ff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .category-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .category-card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .category-card:hover {
+      border-color: #00f2ff;
+      background: #162032;
+    }
+
+    .cat-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .cat-info i { color: #00f2ff; }
+
+    .sub-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      gap: 6px;
+    }
+
+    .back-btn {
+      background: #1e293b;
+      color: #94a3b8;
+      border: none;
+      padding: 5px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+
+    .store-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      width: 100%;
+    }
+
+    @media (min-width: 768px) {
+      .store-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .store-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+    }
+
+    .store-card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      width: 100%;
+    }
+
+    .item-name {
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #fff;
+      text-align: center;
+      margin: 4px 0;
+    }
+
+    .item-price {
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #84cc16;
+      background: #162032;
+      padding: 5px;
+      border-radius: 4px;
+      text-align: center;
+      margin-bottom: 7px;
+    }
+
+    .quantity-control {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 5px 0 8px;
+    }
+
+    .quantity-control button {
+      width: 30px;
+      height: 28px;
+      border: 1px solid #00f2ff;
+      border-radius: 5px;
+      background: #162032;
+      color: #00f2ff;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .quantity-control button:active {
+      background: #00f2ff;
+      color: #060b18;
+    }
+
+    .quantity-value {
+      min-width: 25px;
+      text-align: center;
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .btn-buy {
+      background: #00f2ff;
+      color: #060b18;
+      border: none;
+      font-weight: bold;
+      padding: 7px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.7rem;
+      width: 100%;
+      transition: 0.2s;
+    }
+
+    .btn-buy:hover { background: #00c2cc; }
+
+    #subview-container { display: none; }
+  </style>
+</head>
+
+<body>
+  <script type="module" src="header-template.js"></script>
+
+  <div class="market-container">
+    <div id="main-market-view">
+      <div class="market-header-bar">
+        <div class="market-title">
+          <i class="fa-solid fa-store"></i> OFICIAL STORE
+        </div>
+      </div>
+
+      <div class="category-list">
+        <div class="category-card" onclick="abrirLojaCat('miners')">
+          <div class="cat-info">
+            <i class="fa-solid fa-server"></i> Miners
+          </div>
+        </div>
+
+        <div class="category-card" onclick="abrirLojaCat('racks')">
+          <div class="cat-info">
+            <i class="fa-solid fa-layer-group"></i> Racks
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="subview-container">
+      <div class="sub-header">
+        <button class="back-btn" onclick="voltarMainMarket()">
+          <i class="fa-solid fa-arrow-left"></i> Voltar
+        </button>
+        <div class="market-title" id="market-sub-title">STORE</div>
+      </div>
+
+      <div class="store-grid" id="market-grid-content"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, functions, onAuthStateChanged } from "./firebase.js";
+    import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
+
+    const purchaseItemCallable = httpsCallable(functions, "purchaseItem");
+
+    const UNIT_PRICE = 1;
+    const MAX_QUANTITY = 99;
+
+    let catalogData = {
+      racks: {},
+      miners: {}
+    };
+
+    const selectedQuantities = {};
+
+    async function loadCatalog() {
+      try {
+        const [rRes, mRes] = await Promise.all([
+          fetch('items-racks.json'),
+          fetch('items-miners.json')
+        ]);
+
+        if (!rRes.ok || !mRes.ok) {
+          throw new Error("Não foi possível carregar os catálogos.");
+        }
+
+        const rJson = await rRes.json();
+        const mJson = await mRes.json();
+
+        catalogData.racks = rJson.items || {};
+        catalogData.miners = mJson.items || {};
+
+      } catch (error) {
+        console.error("Erro ao carregar catálogo:", error);
+        alert("Não foi possível carregar os produtos.");
+      }
+    }
+
+    function voltarMainMarket() {
+      document.getElementById("subview-container").style.display = "none";
+      document.getElementById("main-market-view").style.display = "block";
+    }
+
+    async function abrirLojaCat(cat) {
+      if (!["miners", "racks"].includes(cat)) return;
+
+      await loadCatalog();
+
+      document.getElementById("main-market-view").style.display = "none";
+      document.getElementById("subview-container").style.display = "block";
+
+      const titleEl = document.getElementById("market-sub-title");
+      const gridEl = document.getElementById("market-grid-content");
+
+      gridEl.innerHTML = "";
+
+      const products = catalogData[cat];
+
+      titleEl.innerText = cat === "miners"
+        ? "STORE: MINERS"
+        : "STORE: RACKS";
+
+      gridEl.innerHTML = Object.entries(products).map(([id, meta]) => {
+        selectedQuantities[id] = selectedQuantities[id] || 1;
+
+        const imageHeight = cat === "miners" ? "45px" : "50px";
+
+        return `
+          <div class="store-card">
+            <div class="item-name">${meta.name}</div>
+
+            <div style="height:60px; display:flex; align-items:center; justify-content:center;">
+              <img
+                src="${meta.asset || ''}"
+                alt="${meta.name}"
+                style="max-height:${imageHeight}; object-fit:contain;"
+              >
+            </div>
+
+            <div class="quantity-control">
+              <button onclick="alterarQuantidade('${id}', -1)">−</button>
+
+              <span class="quantity-value" id="qty-${id}">1</span>
+
+              <button onclick="alterarQuantidade('${id}', 1)">+</button>
+            </div>
+
+            <div class="item-price" id="price-${id}">
+              Total: 1.00 MYT
+            </div>
+
+            <button
+              class="btn-buy"
+              onclick="comprarItem('${cat}', '${id}', this)"
+            >
+              OK / COMPRAR
+            </button>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function alterarQuantidade(id, variation) {
+      const current = selectedQuantities[id] || 1;
+
+      const next = Math.max(
+        1,
+        Math.min(MAX_QUANTITY, current + variation)
+      );
+
+      selectedQuantities[id] = next;
+
+      const quantityEl = document.getElementById(`qty-${id}`);
+      const priceEl = document.getElementById(`price-${id}`);
+
+      if (quantityEl) quantityEl.textContent = next;
+
+      if (priceEl) {
+        priceEl.textContent =
+          `Total: ${(next * UNIT_PRICE).toFixed(2)} MYT`;
+      }
+    }
+
+    async function esperarUsuarioFirebase() {
+      return new Promise((resolve, reject) => {
+        let unsubscribe = null;
+
+        unsubscribe = onAuthStateChanged(auth, user => {
+          if (unsubscribe) unsubscribe();
+
+          if (user) resolve(user);
+          else reject(new Error("Faça login antes de comprar."));
+        }, error => {
+          if (unsubscribe) unsubscribe();
+          reject(error);
+        });
+      });
+    }
+
+    async function comprarItem(tipo, id, botao) {
+      const quantity = selectedQuantities[id] || 1;
+      const textoOriginal = botao ? botao.textContent : "OK / COMPRAR";
+
+      try {
+        if (botao) {
+          botao.disabled = true;
+          botao.textContent = "PROCESSANDO...";
+        }
+
+        if (!["racks", "miners"].includes(tipo)) {
+          throw new Error("Categoria de produto inválida.");
+        }
+
+        if (!catalogData[tipo] || !catalogData[tipo][id]) {
+          throw new Error("Produto não encontrado no catálogo.");
+        }
+
+        if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+          throw new Error("Quantidade inválida. Escolha de 1 a 99.");
+        }
+
+        await esperarUsuarioFirebase();
+
+        const response = await purchaseItemCallable({
+          type: tipo,
+          itemId: id,
+          quantity
+        });
+
+        const result = response.data;
+
+        if (!result || result.success !== true) {
+          throw new Error("O servidor não confirmou a compra.");
+        }
+
+        if (typeof window.atualizarSaldoMYT === "function") {
+          window.atualizarSaldoMYT(result.balance);
+        }
+
+        selectedQuantities[id] = 1;
+
+        const quantityEl = document.getElementById(`qty-${id}`);
+        const priceEl = document.getElementById(`price-${id}`);
+
+        if (quantityEl) quantityEl.textContent = "1";
+        if (priceEl) {
+          priceEl.textContent = `Total: ${UNIT_PRICE.toFixed(2)} MYT`;
+        }
+
+        alert(
+          `COMPRA CONFIRMADA!\\n` +
+          `Quantidade: ${result.purchased}\\n` +
+          `Total: ${result.totalPrice.toFixed(2)} MYT`
+        );
+
+      } catch (error) {
+        console.error("Erro na compra:", error);
+        alert("COMPRA NÃO REALIZADA\\n" +
+          (error.message || "Erro desconhecido."));
+      } finally {
+        if (botao) {
+          botao.disabled = false;
+          botao.textContent = textoOriginal;
+        }
+      }
+    }
+
+Object.assign(window, {
+  voltarMainMarket,
+  abrirLojaCat,
+  alterarQuantidade,
+  comprarItem
+});
+</script>
+</body>
+</html>

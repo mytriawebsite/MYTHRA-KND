@@ -1,0 +1,31 @@
+{
+  "category": "miners",
+  "items": {
+    "miner_2001": {
+      "name": "Krypto Reactor 1",
+      "rarity": "Epic",
+      "size": 2,
+      "hashPower": "13.000 Th/s",
+      "asset": "assets/miners/miner_2001_retangular.gif"
+    },
+    "miner_2002": {
+      "name": "Krypto Reactor 2",
+      "rarity": "Legendary",
+      "size": 2,
+      "hashPower": "16.590 Th/s",
+      "asset": "assets/miners/miner_2002_retangular.gif"
+    },
+    "miner_2003": {
+      "name": "Krypto Reactor 3 - Quadrado",
+      "rarity": "Rare",
+      "size": 1,
+      "asset": "assets/miners/miner_2003_quadrado.gif"
+    },
+    "miner_2004": {
+      "name": "Krypto Reactor 4 - Quadrado",
+      "rarity": "Epic",
+      "size": 1,
+      "asset": "assets/miners/miner_2004_quadrado.gif"
+    }
+  }
+}

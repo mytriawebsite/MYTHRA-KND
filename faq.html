@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MYTRIA - Central de Ajuda & FAQ</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #060b18; color: #f8fafc; padding-bottom: 50px; overflow-x: hidden; }
+    .container { width: 100%; max-width: 1200px; margin: 10px auto; padding: 0 8px; }
+
+    .header-bar { margin-bottom: 12px; border-bottom: 1px solid #1e293b; padding-bottom: 8px; }
+    .title { font-size: 1rem; font-weight: bold; color: #00f2ff; display: flex; align-items: center; gap: 6px; }
+
+    .faq-item { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+    .faq-question { padding: 12px; font-size: 0.78rem; font-weight: bold; color: #fff; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: #162032; }
+    .faq-answer { padding: 12px; font-size: 0.72rem; color: #cbd5e1; line-height: 1.5; border-top: 1px solid #1e293b; display: none; }
+    .faq-item.active .faq-answer { display: block; }
+    .faq-item.active .faq-question { color: #00f2ff; }
+  </style>
+</head>
+<body>
+
+  <script type="module" src="header-template.js"></script>
+
+  <div class="container">
+    <div class="header-bar">
+      <div class="title"><i class="fa-solid fa-circle-question"></i> Perguntas Frequentes (FAQ)</div>
+    </div>
+
+    <!-- DÚVIDA 1 -->
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFaq(this)">
+        1. Como recebo meu Kit Inicial ao entrar no MYTRIA? <i class="fa-solid fa-chevron-down"></i>
+      </div>
+      <div class="faq-answer">
+        Ao criar sua conta através do link de indicação de um amigo ou criador de conteúdo, você recebe automaticamente no seu **Inventário** 1 Máquina Mineradora Starter, 1 Rack de Suporte e 7 dias de bônus (+100 Gh/s de poder temporário) para começar sem zerar!
+      </div>
+    </div>
+
+    <!-- DÚVIDA 2 -->
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFaq(this)">
+        2. Qual a diferença entre as moedas MTR e Miter? <i class="fa-solid fa-chevron-down"></i>
+      </div>
+      <div class="faq-answer">
+        - **MTR:** Moeda interna atrelada à paridade do Real (BRL), utilizada em operações diárias e minerações regionais.<br>
+        - **Miter:** Ativo global atrelado ao Dólar (USD), utilizado no Marketplace P2P e para negociação de máquinas raras.
+      </div>
+    </div>
+
+    <!-- DÚVIDA 3 -->
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFaq(this)">
+        3. Como funcionam as barras de progresso do Merge, Torneios e Ranking? <i class="fa-solid fa-chevron-down"></i>
+      </div>
+      <div class="faq-answer">
+        Os módulos de Fusão (Merge), Rankings, Torneios Espaciais e Passe de Temporada já estão codificados no ecossistema. Eles possuem uma barra de experiência acumulada por toda a comunidade e serão liberados automaticamente quando o número de ativos na rede atingir as metas.
+      </div>
+    </div>
+
+    <!-- DÚVIDA 4 -->
+    <div class="faq-item">
+      <div class="faq-question" onclick="toggleFaq(this)">
+        4. Como minerar e ganhar poder jogando Minigames? <i class="fa-solid fa-chevron-down"></i>
+      </div>
+      <div class="faq-answer">
+        Na aba `games.html`, ao vencer os desafios arcade, você acumula Gh/s temporário. Esse poder é somado aos seus mineradores posicionados no Rack dentro da sua estufa espacial.
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function toggleFaq(element) {
+      const parent = element.parentElement;
+      parent.classList.toggle('active');
+    }
+  </script>
+</body>
+</html>

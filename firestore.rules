@@ -1,0 +1,141 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(userId) {
+      return request.auth != null
+        && request.auth.uid == userId;
+    }
+
+    function validInitialState() {
+      let data = request.resource.data;
+
+      return data.keys().hasOnly([
+          'balance',
+          'inventory',
+          'room',
+          'initialTestCreditApplied',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.balance == 1000
+        && data.initialTestCreditApplied == true
+        && data.inventory.keys().hasOnly(['racks', 'miners'])
+        && data.inventory.racks.size() == 0
+        && data.inventory.miners.size() == 0
+        && data.room is map
+        && data.room.racks is list
+        && data.room.racks.size() == 16
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    function validCatalogChange(beforeMap, afterMap, allowedIds, spent) {
+      let changed = afterMap.diff(beforeMap).affectedKeys();
+
+      return changed.size() == 1
+        && changed.hasOnly(allowedIds)
+        && (
+          (changed.hasOnly(['rack_1001']) &&
+            afterMap.get('rack_1001', 0) == beforeMap.get('rack_1001', 0) + spent) ||
+          (changed.hasOnly(['rack_1002']) &&
+            afterMap.get('rack_1002', 0) == beforeMap.get('rack_1002', 0) + spent) ||
+          (changed.hasOnly(['rack_1003']) &&
+            afterMap.get('rack_1003', 0) == beforeMap.get('rack_1003', 0) + spent) ||
+          (changed.hasOnly(['rack_1004']) &&
+            afterMap.get('rack_1004', 0) == beforeMap.get('rack_1004', 0) + spent) ||
+          (changed.hasOnly(['rack_1005']) &&
+            afterMap.get('rack_1005', 0) == beforeMap.get('rack_1005', 0) + spent) ||
+          (changed.hasOnly(['rack_1006']) &&
+            afterMap.get('rack_1006', 0) == beforeMap.get('rack_1006', 0) + spent) ||
+          (changed.hasOnly(['miner_2001']) &&
+            afterMap.get('miner_2001', 0) == beforeMap.get('miner_2001', 0) + spent) ||
+          (changed.hasOnly(['miner_2002']) &&
+            afterMap.get('miner_2002', 0) == beforeMap.get('miner_2002', 0) + spent) ||
+          (changed.hasOnly(['miner_2003']) &&
+            afterMap.get('miner_2003', 0) == beforeMap.get('miner_2003', 0) + spent) ||
+          (changed.hasOnly(['miner_2004']) &&
+            afterMap.get('miner_2004', 0) == beforeMap.get('miner_2004', 0) + spent)
+        );
+    }
+
+    function validPurchase() {
+      let before = resource.data;
+      let after = request.resource.data;
+      let spent = before.balance - after.balance;
+
+      return after.diff(before).affectedKeys()
+          .hasOnly(['balance', 'inventory', 'updatedAt'])
+        && after.diff(before).affectedKeys()
+          .hasAll(['balance', 'inventory', 'updatedAt'])
+        && before.balance is int
+        && after.balance is int
+        && spent >= 1
+        && spent <= 99
+        && after.balance >= 0
+        && after.updatedAt == request.time
+        && after.inventory.keys().hasOnly(['racks', 'miners'])
+        && (
+          (
+            validCatalogChange(
+              before.inventory.racks,
+              after.inventory.racks,
+              ['rack_1001', 'rack_1002', 'rack_1003',
+               'rack_1004', 'rack_1005', 'rack_1006'],
+              spent
+            )
+            && after.inventory.miners == before.inventory.miners
+          )
+          ||
+          (
+            validCatalogChange(
+              before.inventory.miners,
+              after.inventory.miners,
+              ['miner_2001', 'miner_2002', 'miner_2003', 'miner_2004'],
+              spent
+            )
+            && after.inventory.racks == before.inventory.racks
+          )
+        );
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == userId
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.keys().hasOnly([
+          'uid',
+          'email',
+          'displayName',
+          'photoURL',
+          'playerId',
+          'createdAt'
+        ]);
+
+      allow update: if isOwner(userId)
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly(['playerId']);
+
+      allow delete: if false;
+
+      match /game/state {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && validInitialState();
+        allow update: if isOwner(userId) && validPurchase();
+        allow delete: if false;
+      }
+
+      match /game/{document=**} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MYTRIA - Mercado</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: sans-serif; background: #060b18; color: #f8fafc; padding-bottom: 50px; overflow-x: hidden; }
+        .market-container { width: 100%; max-width: 1200px; margin: 10px auto; padding: 0 8px; }
+        .market-header-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #1e293b; padding-bottom: 8px; }
+        .market-title { font-size: 1rem; font-weight: bold; color: #00f2ff; display: flex; align-items: center; gap: 6px; }
+        .market-menu { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .market-menu-btn { background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.2s; }
+        .market-menu-btn:hover { border-color: #00f2ff; background: #162032; }
+        .menu-btn-left { display: flex; align-items: center; gap: 12px; font-size: 0.95rem; font-weight: bold; color: #fff; }
+        .menu-btn-left i { color: #00f2ff; font-size: 1.2rem; width: 25px; text-align: center; }
+        .sub-view { display: none; }
+        .nav-back-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .back-btn { background: #1e293b; color: #94a3b8; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 5px; }
+        .stats-box { background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 12px; margin-bottom: 12px; text-align: center; }
+        .stats-title { font-size: 0.7rem; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase; font-weight: bold; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .stat-item { background: #162032; padding: 8px 4px; border-radius: 6px; border: 1px solid #1e293b; }
+        .stat-label { font-size: 0.55rem; color: #64748b; margin-bottom: 2px; }
+        .stat-val { font-size: 0.75rem; font-weight: bold; color: #38bdf8; }
+        .item-list { display: flex; flex-direction: column; gap: 8px; }
+        .market-item-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 10px; display: flex; align-items: center; gap: 10px; }
+        .item-icon-box { width: 50px; height: 50px; background: #162032; border: 1px solid #334155; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+        .item-icon-box img { max-height: 40px; max-width: 45px; object-fit: contain; }
+        .item-details { flex: 1; min-width: 0; }
+        .item-name { font-size: 0.8rem; font-weight: bold; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .item-sub { font-size: 0.65rem; color: #84cc16; margin-top: 2px; }
+        .item-qty-price { text-align: right; }
+        .item-qty { font-size: 0.7rem; color: #94a3b8; }
+        .item-price { font-size: 0.8rem; font-weight: bold; color: #38bdf8; margin-top: 2px; }
+        .sell-detail-panel { background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 12px; margin-top: 10px; }
+        .form-group { margin-bottom: 10px; }
+        .form-label { font-size: 0.7rem; color: #94a3b8; display: block; margin-bottom: 4px; }
+        .form-input { width: 100%; background: #162032; border: 1px solid #1e293b; color: #fff; padding: 8px; border-radius: 6px; font-size: 0.8rem; outline: none; }
+        .empty-btn { background: #00f2ff; color: #060b18; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; cursor: pointer; width: 100%; }
+    </style>
+</head>
+<body>
+    <script type="module" src="header-template.js"></script>
+    <div class="market-container">
+        <div id="view-main-menu">
+            <div class="market-header-bar">
+                <div class="market-title"><i class="fa-solid fa-store"></i> Mercado v0.2 <span style="font-size:0.6rem; color:#f59e0b; margin-left:6px;">(Modular)</span></div>
+            </div>
+            <div class="market-menu">
+                <div class="market-menu-btn" onclick="abrirSecao('comprar')">
+                    <div class="menu-btn-left"><i class="fa-solid fa-basket-shopping"></i> Comprar</div>
+                    <i class="fa-solid fa-chevron-right" style="color:#64748b; font-size:0.8rem;"></i>
+                </div>
+                <div class="market-menu-btn" onclick="abrirSecao('vender')">
+                    <div class="menu-btn-left"><i class="fa-solid fa-hand-holding-dollar"></i> Vender</div>
+                    <i class="fa-solid fa-chevron-right" style="color:#64748b; font-size:0.8rem;"></i>
+                </div>
+                <div class="market-menu-btn" onclick="abrirSecao('pedidos')">
+                    <div class="menu-btn-left"><i class="fa-solid fa-file-lines"></i> Meus pedidos</div>
+                    <i class="fa-solid fa-chevron-right" style="color:#64748b; font-size:0.8rem;"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUBTELA: COMPRAR -->
+        <div id="view-comprar" class="sub-view">
+            <div class="nav-back-bar">
+                <button class="back-btn" onclick="voltarMenu()"><i class="fa-solid fa-chevron-left"></i> Voltar</button>
+                <div style="font-size: 0.9rem; font-weight: bold; color: #00f2ff;">Comprar (Mercado Global)</div>
+                <div></div>
+            </div>
+            <div class="stats-box">
+                <div class="stats-title">Pelos últimos 30 dias</div>
+                <div class="stats-grid">
+                    <div class="stat-item"><div class="stat-label">Pedidos</div><div class="stat-val">832,944</div></div>
+                    <div class="stat-item"><div class="stat-label">Vendidos</div><div class="stat-val">35,880</div></div>
+                    <div class="stat-item"><div class="stat-label">Volume MYT</div><div class="stat-val">3,929k</div></div>
+                </div>
+            </div>
+            <div class="item-list" id="marketplace-buy-list"></div>
+        </div>
+
+        <!-- SUBTELA: VENDER -->
+        <div id="view-vender" class="sub-view">
+            <div class="nav-back-bar">
+                <button class="back-btn" onclick="voltarMenu()"><i class="fa-solid fa-chevron-left"></i> Voltar</button>
+                <div style="font-size: 0.9rem; font-weight: bold; color: #00f2ff;">Vender</div>
+                <div></div>
+            </div>
+            <div class="sell-detail-panel">
+                <div style="font-size: 0.85rem; font-weight: bold; color: #00f2ff; margin-bottom: 10px;">Configuração de Anúncio</div>
+                <div class="form-group">
+                    <label class="form-label">Preço por item (MYT)</label>
+                    <input type="number" class="form-input" id="input-preco-item" value="15.00" step="0.0001">
+                </div>
+                <button class="empty-btn" onclick="alert('Anúncio publicado com sucesso!')">PUBLICAR ANÚNCIO</button>
+            </div>
+        </div>
+
+        <!-- SUBTELA: MEUS PEDIDOS -->
+        <div id="view-pedidos" class="sub-view">
+            <div class="nav-back-bar">
+                <button class="back-btn" onclick="voltarMenu()"><i class="fa-solid fa-chevron-left"></i> Voltar</button>
+                <div style="font-size: 0.9rem; font-weight: bold; color: #00f2ff;">Meus Pedidos</div>
+                <div></div>
+            </div>
+            <div style="text-align: center; color: #64748b; padding: 40px; font-size: 0.8rem;">
+                <i class="fa-solid fa-receipt" style="font-size: 2rem; margin-bottom: 8px; color:#334155;"></i>
+                <div>Nenhum pedido ou anúncio ativo no momento.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function abrirSecao(secao) {
+            document.getElementById('view-main-menu').style.display = 'none';
+            document.querySelectorAll('.sub-view').forEach(el => el.style.display = 'none');
+            if (secao === 'comprar') {
+                document.getElementById('view-comprar').style.display = 'block';
+                await carregarItensMercado();
+            } else if (secao === 'vender') {
+                document.getElementById('view-vender').style.display = 'block';
+            } else if (secao === 'pedidos') {
+                document.getElementById('view-pedidos').style.display = 'block';
+            }
+        }
+
+        function voltarMenu() {
+            document.querySelectorAll('.sub-view').forEach(el => el.style.display = 'none');
+            document.getElementById('view-main-menu').style.display = 'block';
+        }
+
+        async function carregarItensMercado() {
+            const listEl = document.getElementById('marketplace-buy-list');
+            listEl.innerHTML = ''; // Força recarregar sempre limpo para refletir os novos racks
+
+            try {
+                const [rRes, mRes] = await Promise.all([
+                    fetch('items-racks.json'),
+                    fetch('items-miners.json')
+                ]);
+                const rJson = await rRes.json();
+                const mJson = await mRes.json();
+
+                let html = '';
+
+                // Racks do catálogo atualizados (todos os 6 modelos)
+                Object.entries(rJson.items || {}).forEach(([id, meta]) => {
+                    html += `
+                        <div class="market-item-card">
+                            <div class="item-icon-box"><img src="${meta.asset}" alt="${meta.name}"></div>
+                            <div class="item-details"><div class="item-name">${meta.name}</div><div class="item-sub">Estante Oficial | ID: ${id}</div></div>
+                            <div class="item-qty-price"><div class="item-qty">Qtd: 24</div><div class="item-price">20.00 MYT</div></div>
+                        </div>
+                    `;
+                });
+
+                // Miners do catálogo
+                Object.entries(mJson.items || {}).forEach(([id, meta]) => {
+                    html += `
+                        <div class="market-item-card">
+                            <div class="item-icon-box"><img src="${meta.asset}" alt="${meta.name}"></div>
+                            <div class="item-details"><div class="item-name">${meta.name}</div><div class="item-sub">${meta.hashPower || ''} | ID: ${id}</div></div>
+                            <div class="item-qty-price"><div class="item-qty">Qtd: 50</div><div class="item-price">15.00 MYT</div></div>
+                        </div>
+                    `;
+                });
+
+                listEl.innerHTML = html;
+            } catch (e) {
+                console.error("Erro ao carregar itens no marketplace:", e);
+            }
+        }
+    </script>
+</body>
+</html>

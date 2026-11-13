@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MYTRIA - Carteira, Pix e Swap</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: sans-serif; background: #060b18; color: #f8fafc; margin: 0; padding-bottom: 50px; }
+    .wallet-container { max-width: 900px; margin: 20px auto; padding: 0 15px; box-sizing: border-box; }
+    
+    .coins-grid-nav { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
+    .coin-nav-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 12px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 10px; }
+    .coin-nav-card:hover, .coin-nav-card.active { border-color: #00f2ff; background: #162032; transform: translateY(-2px); }
+    .coin-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem; flex-shrink: 0; }
+    .coin-info { display: flex; flex-direction: column; overflow: hidden; }
+    .coin-symbol { font-weight: bold; font-size: 0.9rem; color: #fff; }
+    .coin-balance { font-size: 0.75rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .operation-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+    .op-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 15px; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    .op-title { font-size: 1.2rem; font-weight: bold; color: #00f2ff; display: flex; align-items: center; gap: 10px; }
+    
+    .tab-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tab-btn { background: #1e293b; color: #94a3b8; border: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85rem; transition: 0.2s; }
+    .tab-btn.active { background: #00f2ff; color: #060b18; }
+    .tab-btn.pix-btn { background: #32bcad; color: #000; }
+    .tab-btn.pix-btn.active { background: #00f228; color: #000; }
+
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px; }
+    .form-control { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #fff; box-sizing: border-box; font-size: 0.95rem; }
+    .btn-submit { width: 100%; background: #00f2ff; color: #060b18; font-weight: bold; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-size: 1rem; transition: 0.2s; margin-top: 10px; }
+    .btn-submit:hover { background: #00c2cc; }
+
+    .deposit-box { text-align: center; padding: 10px 0; margin-top: 15px; border-top: 1px solid #1e293b; display: none; }
+    .qr-placeholder { width: 150px; height: 150px; background: #fff; margin: 0 auto 15px; padding: 10px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .qr-placeholder img { width: 100%; height: 100%; }
+    .wallet-address-container { display: flex; align-items: center; gap: 8px; background: #1e293b; padding: 8px 12px; border-radius: 6px; border: 1px solid #334155; margin-top: 8px; }
+    .wallet-address { font-family: monospace; font-size: 0.8rem; color: #00f228; word-break: break-all; flex: 1; text-align: left; }
+    .btn-copy { background: #334155; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+    
+    .exchange-box { background: #162032; border: 1px solid #1e293b; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
+    
+    #status-wallet-msg { font-size: 0.85rem; margin-top: 12px; font-weight: bold; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <!-- Header Modular -->
+  <script type="module" src="header-template.js"></script>
+
+  <div class="wallet-container">
+    
+    <!-- GRID DE MOEDAS DA CARTEIRA -->
+    <div class="coins-grid-nav" id="coins-nav">
+      <div class="coin-nav-card active" data-coin="MYT">
+        <div class="coin-icon" style="border: 2px solid #00f2ff; color: #00f2ff;"><i class="fa-solid fa-rocket"></i></div>
+        <div class="coin-info">
+          <span class="coin-symbol">MYT</span>
+          <span class="coin-balance" id="card-bal-MYT">0.000000</span>
+        </div>
+      </div>
+      <div class="coin-nav-card" data-coin="MTG">
+        <div class="coin-icon" style="border: 2px solid #f59e0b; color: #f59e0b;"><i class="fa-solid fa-rocket"></i></div>
+        <div class="coin-info">
+          <span class="coin-symbol">MTG</span>
+          <span class="coin-balance" id="card-bal-MTG">0.000000</span>
+        </div>
+      </div>
+      <div class="coin-nav-card" data-coin="BTC">
+        <div class="coin-icon" style="background: #f7931a; color: #fff;"><i class="fa-brands fa-bitcoin"></i></div>
+        <div class="coin-info">
+          <span class="coin-symbol">BTC</span>
+          <span class="coin-balance" id="card-bal-BTC">0.00000000</span>
+        </div>
+      </div>
+      <div class="coin-nav-card" data-coin="DOGE">
+        <div class="coin-icon" style="background: #c2a633; color: #fff;"><i class="fa-solid fa-dog"></i></div>
+        <div class="coin-info">
+          <span class="coin-symbol">DOGE</span>
+          <span class="coin-balance" id="card-bal-DOGE">0.00000000</span>
+        </div>
+      </div>
+      <div class="coin-nav-card" data-coin="LTC">
+        <div class="coin-icon" style="background: #345d9d; color: #fff;"><i class="fa-solid fa-litecoin-sign"></i></div>
+        <div class="coin-info">
+          <span class="coin-symbol">LTC</span>
+          <span class="coin-balance" id="card-bal-LTC">0.00000000</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAINEL OPERACIONAL PRINCIPAL -->
+    <div class="operation-card">
+      <div class="op-header">
+        <div class="op-title" id="op-title">
+          <i class="fa-solid fa-bolt"></i> Depósito via Pix (Sem Taxa)
+        </div>
+        <div class="tab-buttons" id="tab-buttons">
+          <button class="tab-btn pix-btn active" id="btn-tab-pix-deposit"><i class="fa-solid fa-arrow-down"></i> Depósito Pix</button>
+          <button class="tab-btn pix-btn" id="btn-tab-pix-withdraw"><i class="fa-solid fa-arrow-up"></i> Retirada Pix (3% taxa)</button>
+          <button class="tab-btn" id="btn-tab-swap"><i class="fa-solid fa-rotate"></i> Swap (Conversão)</button>
+          <button class="tab-btn" id="btn-tab-crypto-deposit"><i class="fa-solid fa-coins"></i> Depósito Cripto</button>
+          <button class="tab-btn" id="btn-tab-crypto-withdraw"><i class="fa-solid fa-wallet"></i> Retirada Cripto</button>
+        </div>
+      </div>
+
+      <!-- 1. DEPÓSITO VIA PIX -->
+      <div id="view-pix-deposit">
+        <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 0;">Informe o valor em Reais (R$) que deseja depositar. O sistema gerará o QR Code e o Copia e Cola exatos para o pagamento na chave Nubank (21965341114).</p>
+        <div class="form-group">
+          <label>Valor do Depósito em Reais (R$):</label>
+          <input type="number" id="input-deposit-brl" class="form-control" placeholder="0.00" step="0.01">
+        </div>
+        <button class="btn-submit" id="btn-generate-deposit-pix" style="background:#00f228; color:#000;">Gerar QR Code / Copia e Cola</button>
+
+        <div class="deposit-box" id="deposit-pix-result-box">
+          <div class="exchange-box" style="display:block; margin-bottom:15px;">
+            <div style="font-size: 0.9rem; font-weight: bold; color:#00f2ff;">
+              Crédito integral no jogo: <span id="deposit-calculated-myt" style="color:#00f228;">$0.00 MYT</span>
+            </div>
+          </div>
+          <div class="qr-placeholder">
+            <img id="deposit-pix-qrcode" src="" alt="QR Code Pix">
+          </div>
+          <label style="font-size: 0.8rem; color: #94a3b8;">PIX COPIA E COLA (NUBANK - 21965341114):</label>
+          <div class="wallet-address-container">
+            <span class="wallet-address" id="text-deposit-pix-copia">---</span>
+            <button class="btn-copy" id="btn-copy-deposit-pix"><i class="fa-solid fa-copy"></i> Copiar</button>
+          </div>
+          <button class="btn-submit" id="btn-notify-deposit" style="background:#00f2ff; color:#060b18; margin-top:15px;">Já fiz o pagamento (Notificar ADM)</button>
+        </div>
+      </div>
+
+      <!-- 2. RETIRADA / SAQUE VIA PIX -->
+      <div id="view-pix-withdraw" style="display:none;">
+        <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 0;">Informe o valor em MYT ($ USD) que deseja retirar e a sua chave Pix (Celular, CPF, E-mail ou Aleatória). O valor líquido cairá diretamente na sua conta bancária (incide taxa de 3%).</p>
+        <div class="form-group">
+          <label>Sua Chave Pix para Recebimento:</label>
+          <input type="text" id="input-withdraw-pix-key" class="form-control" placeholder="Informe sua chave Pix aqui">
+        </div>
+        <div class="form-group">
+          <label>Valor em MYT ($ USD) para Retirar:</label>
+          <input type="number" id="input-withdraw-usd" class="form-control" placeholder="0.00" step="0.01">
+        </div>
+        <div class="exchange-box" id="withdraw-result-box" style="display:none;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #94a3b8; margin-bottom: 6px;">
+            <span>Valor em Reais (Bruto):</span>
+            <b id="withdraw-bruto-val" style="color:#fff;">R$ 0,00</b>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #94a3b8; margin-bottom: 6px;">
+            <span>Taxa da Plataforma (3%):</span>
+            <b id="withdraw-taxa-val" style="color:#ef4444;">- R$ 0,00</b>
+          </div>
+          <hr style="border: 0; border-top: 1px solid #1e293b; margin: 8px 0;">
+          <div style="display: flex; justify-content: space-between; font-size: 1rem; font-weight: bold;">
+            <span style="color:#00f228;">Você Receberá no Pix (Líquido):</span>
+            <b id="withdraw-liquido-val" style="color:#00f228;">R$ 0,00</b>
+          </div>
+        </div>
+        <button class="btn-submit" id="btn-request-withdraw-pix" style="background:#00f228; color:#000;">Confirmar e Enviar para o Pix</button>
+      </div>
+
+      <!-- 3. SISTEMA DE SWAP (Conversão entre Moedas) -->
+      <div id="view-swap" style="display:none;">
+        <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 0;">Converta instantaneamente qualquer moeda de seu saldo para outra (incide taxa de 3%).</p>
+        <div class="form-group">
+          <label>Converter de (Origem):</label>
+          <select id="select-swap-from" class="form-control">
+            <option value="MYT">MYT Token</option>
+            <option value="BTC">Bitcoin (BTC)</option>
+            <option value="DOGE">Dogecoin (DOGE)</option>
+            <option value="LTC">Litecoin (LTC)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Converter para (Destino):</label>
+          <select id="select-swap-to" class="form-control">
+            <option value="BTC">Bitcoin (BTC)</option>
+            <option value="DOGE">Dogecoin (DOGE)</option>
+            <option value="LTC">Litecoin (LTC)</option>
+            <option value="MYT">MYT Token</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Quantidade:</label>
+          <input type="number" id="input-swap-qty" class="form-control" placeholder="0.00000000" step="0.00000001">
+        </div>
+        <div class="exchange-box" id="swap-result-box" style="display:none;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #94a3b8; margin-bottom: 6px;">
+            <span>Valor Bruto Convertido:</span>
+            <b id="swap-bruto-val" style="color:#fff;">0.00</b>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #94a3b8; margin-bottom: 6px;">
+            <span>Taxa de Swap (3%):</span>
+            <b id="swap-taxa-val" style="color:#ef4444;">- 0.00</b>
+          </div>
+          <hr style="border: 0; border-top: 1px solid #1e293b; margin: 8px 0;">
+          <div style="display: flex; justify-content: space-between; font-size: 1rem; font-weight: bold;">
+            <span style="color:#00f228;">Você Receberá (Líquido):</span>
+            <b id="swap-liquido-val" style="color:#00f228;">0.00</b>
+          </div>
+        </div>
+        <button class="btn-submit" id="btn-execute-swap">Executar Swap</button>
+      </div>
+
+      <!-- 4. DEPÓSITO DE CRIPTO -->
+      <div id="view-crypto-deposit" style="display:none;">
+        <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 0;">Selecione a criptomoeda que deseja depositar e envie fundos para o endereço oficial gerado.</p>
+        <div class="form-group">
+          <label>Moeda de Depósito:</label>
+          <select id="select-deposit-coin" class="form-control">
+            <option value="BTC">Bitcoin (BTC)</option>
+            <option value="DOGE">Dogecoin (DOGE)</option>
+            <option value="LTC">Litecoin (LTC)</option>
+          </select>
+        </div>
+        <div class="deposit-box" style="display:block; border:none; margin-top:10px;">
+          <div class="qr-placeholder">
+            <img id="qr-code-img" src="" alt="QR Code Cripto">
+          </div>
+          <label style="font-size: 0.8rem; color: #94a3b8;">ENDEREÇO OFICIAL PARA DEPÓSITO:</label>
+          <div class="wallet-address-container">
+            <span class="wallet-address" id="text-wallet-address">---</span>
+            <button class="btn-copy" id="btn-copy-crypto-addr"><i class="fa-solid fa-copy"></i> Copiar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. RETIRADA DE CRIPTO -->
+      <div id="view-crypto-withdraw" style="display:none;">
+        <p style="font-size: 0.85rem; color: #94a3b8; margin-top: 0;">Retire suas criptomoedas para sua carteira externa pessoal (incide taxa de 3%).</p>
+        <div class="form-group">
+          <label>Criptomoeda para Saque:</label>
+          <select id="select-withdraw-coin" class="form-control">
+            <option value="BTC">Bitcoin (BTC)</option>
+            <option value="DOGE">Dogecoin (DOGE)</option>
+            <option value="LTC">Litecoin (LTC)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Endereço da Carteira de Destino:</label>
+          <input type="text" id="input-crypto-dest" class="form-control" placeholder="Cole o endereço da carteira">
+        </div>
+        <div class="form-group">
+          <label>Quantidade a Sacar:</label>
+          <input type="number" id="input-crypto-qty" class="form-control" placeholder="0.00000000" step="0.00000001">
+        </div>
+        <button class="btn-submit" id="btn-request-crypto-withdraw">Solicitar Retirada em Cripto</button>
+      </div>
+
+      <div id="status-wallet-msg"></div>
+
+    </div>
+
+  </div>
+
+  <!-- Firebase Compat Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!firebase.apps.length) {
+        firebase.initializeApp({
+          apiKey: "AIzaSyDbWMI07qlMj54Fc73NaJwJkTDI5zenKPk",
+          authDomain: "mytria02.firebaseapp.com",
+          projectId: "mytria02",
+          storageBucket: "mytria02.firebasestorage.app",
+          messagingSenderId: "533631860859",
+          appId: "1:533631860859:web:125aece9d9c409fff7a2de",
+          measurementId: "G-H9VHXQJ0YD"
+        });
+      }
+
+      const auth = firebase.auth();
+      const db = firebase.firestore();
+
+      let currentUser = null;
+      let userBalances = { MYT: 0, MTG: 0, BTC: 0, DOGE: 0, LTC: 0 };
+
+      const marketRates = {
+        USD_BRL: 5.50,
+        cryptoUSD: { MYT: 1.00, BTC: 65000, DOGE: 0.15, LTC: 75 }
+      };
+
+      const platformCryptoAddresses = {
+        BTC: "bc1qmytriaofficialbtcwalletaddresssample999",
+        DOGE: "DMRytriaOfficialDogeWalletAddressSample999",
+        LTC: "ltc1qmytriaofficialltcwalletaddresssample999"
+      };
+
+      const titleEl = document.getElementById("op-title");
+      const btnTabPixDeposit = document.getElementById("btn-tab-pix-deposit");
+      const btnTabPixWithdraw = document.getElementById("btn-tab-pix-withdraw");
+      const btnTabSwap = document.getElementById("btn-tab-swap");
+      const btnTabCryptoDeposit = document.getElementById("btn-tab-crypto-deposit");
+      const btnTabCryptoWithdraw = document.getElementById("btn-tab-crypto-withdraw");
+
+      const viewPixDeposit = document.getElementById("view-pix-deposit");
+      const viewPixWithdraw = document.getElementById("view-pix-withdraw");
+      const viewSwap = document.getElementById("view-swap");
+      const viewCryptoDeposit = document.getElementById("view-crypto-deposit");
+      const viewCryptoWithdraw = document.getElementById("view-crypto-withdraw");
+      const statusMsg = document.getElementById("status-wallet-msg");
+
+      function mostrarAba(tabName) {
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        viewPixDeposit.style.display = "none";
+        viewPixWithdraw.style.display = "none";
+        viewSwap.style.display = "none";
+        viewCryptoDeposit.style.display = "none";
+        viewCryptoWithdraw.style.display = "none";
+        statusMsg.innerText = "";
+
+        if (tabName === "pix-deposit") {
+          btnTabPixDeposit.classList.add("active");
+          viewPixDeposit.style.display = "block";
+          titleEl.innerHTML = `<i class="fa-solid fa-arrow-down"></i> Depósito via Pix (Sem Taxa)`;
+        } else if (tabName === "pix-withdraw") {
+          btnTabPixWithdraw.classList.add("active");
+          viewPixWithdraw.style.display = "block";
+          titleEl.innerHTML = `<i class="fa-solid fa-arrow-up"></i> Retirada / Saque Pix (3% taxa)`;
+        } else if (tabName === "swap") {
+          btnTabSwap.classList.add("active");
+          viewSwap.style.display = "block";
+          titleEl.innerHTML = `<i class="fa-solid fa-rotate"></i> Swap (Conversão entre Moedas)`;
+        } else if (tabName === "crypto-deposit") {
+          btnTabCryptoDeposit.classList.add("active");
+          viewCryptoDeposit.style.display = "block";
+          titleEl.innerHTML = `<i class="fa-solid fa-coins"></i> Depósito de Criptomoeda`;
+          atualizarEnderecoDeposito();
+        } else if (tabName === "crypto-withdraw") {
+          btnTabCryptoWithdraw.classList.add("active");
+          viewCryptoWithdraw.style.display = "block";
+          titleEl.innerHTML = `<i class="fa-solid fa-wallet"></i> Retirada de Criptomoeda (3% taxa)`;
+        }
+      }
+
+      btnTabPixDeposit.onclick = () => mostrarAba("pix-deposit");
+      btnTabPixWithdraw.onclick = () => mostrarAba("pix-withdraw");
+      btnTabSwap.onclick = () => mostrarAba("swap");
+      btnTabCryptoDeposit.onclick = () => mostrarAba("crypto-deposit");
+      btnTabCryptoWithdraw.onclick = () => mostrarAba("crypto-withdraw");
+
+      // 1. Gerar Pix de Depósito
+      document.getElementById("btn-generate-deposit-pix").onclick = () => {
+        const brl = parseFloat(document.getElementById("input-deposit-brl").value) || 0;
+        if (brl <= 0) {
+          statusMsg.style.color = "#ef4444";
+          statusMsg.innerText = "Digite um valor válido em Reais para gerar o Pix.";
+          return;
+        }
+
+        const usdVal = brl / marketRates.USD_BRL;
+        document.getElementById("deposit-calculated-myt").innerText = `$${usdVal.toFixed(2)} MYT`;
+
+        const pixPayload = `00020126580014BR.GOV.BCB.PIX0136219653411145204000053039865802BR5909MYTRIA APP6009SAO PAULO6304${brl.toFixed(2)}`;
+        document.getElementById("text-deposit-pix-copia").innerText = pixPayload;
+        document.getElementById("deposit-pix-qrcode").src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(pixPayload)}`;
+        
+        document.getElementById("deposit-pix-result-box").style.display = "block";
+        statusMsg.style.color = "#00f228";
+        statusMsg.innerText = "QR Code e Copia e Cola gerados com sucesso!";
+      };
+
+      document.getElementById("btn-copy-deposit-pix").onclick = () => {
+        navigator.clipboard.writeText(document.getElementById("text-deposit-pix-copia").innerText);
+        statusMsg.style.color = "#00f228";
+        statusMsg.innerText = "Código Pix Copia e Cola copiado!";
+      };
+
+      document.getElementById("btn-notify-deposit").onclick = () => {
+        statusMsg.style.color = "#00f228";
+        statusMsg.innerText = "Aviso enviado ao ADM! O saldo integral será liberado após a confirmação.";
+      };
+
+      // 2. Retirada / Saque Pix (Com 3% taxa)
+      const inputWithdrawUsd = document.getElementById("input-withdraw-usd");
+      inputWithdrawUsd.oninput = () => {
+        const usdVal = parseFloat(inputWithdrawUsd.value) || 0;
+        if (usdVal <= 0) {
+          document.getElementById("withdraw-result-box").style.display = "none";
+          return;
+        }
+
+        const brlBruto = usdVal * marketRates.USD_BRL;
+        const taxa = brlBruto * 0.03;
+        const liquido = brlBruto - taxa;
+
+        document.getElementById("withdraw-bruto-val").innerText = `R$ ${brlBruto.toFixed(2)}`;
+        document.getElementById("withdraw-taxa-val").innerText = `- R$ ${taxa.toFixed(2)}`;
+        document.getElementById("withdraw-liquido-val").innerText = `R$ ${liquido.toFixed(2)}`;
+        document.getElementById("withdraw-result-box").style.display = "block";
+      };
+
+      document.getElementById("btn-request-withdraw-pix").onclick = () => {
+        const key = document.getElementById("input-withdraw-pix-key").value;
+        const usdVal = parseFloat(inputWithdrawUsd.value) || 0;
+        if (!key || usdVal <= 0) {
+          statusMsg.style.color = "#ef4444";
+          statusMsg.innerText = "Preencha a chave Pix e o valor da retirada.";
+          return;
+        }
+        statusMsg.style.color = "#00f228";
+        statusMsg.innerText = "Solicitação de retirada Pix enviada com sucesso! O valor cairá na chave informada.";
+      };
+
+      // 3. Sistema de Swap
+      const inputSwapQty = document.getElementById("input-swap-qty");
+      const selectSwapFrom = document.getElementById("select-swap-from");
+      const selectSwapTo = document.getElementById("select-swap-to");
+
+      function calcularSwap() {
+        const qty = parseFloat(inputSwapQty.value) || 0;
+        if (qty <= 0) {
+          document.getElementById("swap-result-box").style.display = "none";
+          return;
+        }
+
+        const fromCoin = selectSwapFrom.value;
+        const toCoin = selectSwapTo.value;
+
+        const rateFrom = marketRates.cryptoUSD[fromCoin] || 1;
+        const rateTo = marketRates.cryptoUSD[toCoin] || 1;
+
+        const valorEmUSD = qty * rateFrom;
+        const valorDestinoBruto = valorEmUSD / rateTo;
+
+        const taxa = valorDestinoBruto * 0.03; // 3% taxa de swap
+        const liquido = valorDestinoBruto - taxa;
+
+        document.getElementById("swap-bruto-val").innerText = `${valorDestinoBruto.toFixed(6)} ${toCoin}`;
+        document.getElementById("swap-taxa-val").innerText = `- ${taxa.toFixed(6)} ${toCoin}`;
+        document.getElementById("swap-liquido-val").innerText = `${liquido.toFixed(6)} ${toCoin}`;
+        document.getElementById("swap-result-box").style.display = "block";
+      }
+
+      inputSwapQty.oninput = calcularSwap;
+      selectSwapFrom.onchange = calcularSwap;
+      selectSwapTo.onchange = calcularSwap;
+
+      document.getElementById("btn-execute-swap").onclick = async () => {
+        const qty = parseFloat(inputSwapQty.value) || 0;
+        const fromCoin = selectSwapFrom.value;
+        const toCoin = selectSwapTo.value;
+
+        if (qty <= 0) {
+          statusMsg.style.color = "#ef4444";
+          statusMsg.innerText = "Digite uma quantidade válida para conversão.";
+          return;
+        }
+
+        if (userBalances[fromCoin] < qty) {
+          statusMsg.style.color = "#ef4444";
+          statusMsg.innerText = `Saldo insuficiente de ${fromCoin}!`;
+          return;
+        }
+
+        const rateFrom = marketRates.cryptoUSD[fromCoin] || 1;
+        const rateTo = marketRates.cryptoUSD[toCoin] || 1;
+        const liquido = ((qty * rateFrom) / rateTo) * 0.97;
+
+        userBalances[fromCoin] -= qty;
+        userBalances[toCoin] = (userBalances[toCoin] || 0) + liquido;
+
+        if (currentUser) {
+          await db.collection("users").doc(currentUser.uid).update({ balances: userBalances });
+          atualizarCardsTela();
+        }
+
+        statusMsg.style.color = "#00f228";
+        statusMsg.innerText = `Swap realizado com sucesso! Convertido ${qty} ${fromCoin} para ${liquido.toFixed(6)} ${toCoin}.`;
+      };
+
+      // 4. Depósito Cripto
+      const selectDepositCoin = document.getElementById("select-deposit-coin");
+      function atualizarEnderecoDeposito() {
+        const coin = selectDepositCoin.value;
+        const addr = platformCryptoAddresses[coin] || "---";
+        document.getElementById("text-wallet-address").innerText = addr;
+        document.getElementById("qr-code-img").src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${addr}`;
+      }
+      selectDepositCoin.onchange = atualizarEnderecoDeposito;
+
+      document.getElementById("btn-copy-crypto-addr").onclick = () => {
+        navigator.clipboard.writeText(document.getElementById("text-wallet-address").innerText);
+        statusMsg.style.color = "#00f2ff";
+        statusMsg.innerText = "Endereço de depósito copiado!";
+      };
+
+      // 5. Retirada Cripto
+      document.getElementById("btn-request-crypto-withdraw").onclick = () => {
+        const coin = document.getElementById("select-withdraw-coin").value;
+        const dest = document.getElementById("input-crypto-dest").value;
+        const qty = parseFloat(document.getElementById("input-crypto-qty").value) || 0;
+
+        if (!dest || qty <= 0) {
+          statusMsg.style.color = "#ef4444";
+          statusMsg.innerText = "Preencha o endereço de destino e a quantidade válida.";
+          return;
+        }
+
+        statusMsg.style.color = "#00f228";
+        statusMsg.innerText = `Solicitação de saque de ${qty} ${coin} enviada com sucesso!`;
+      };
+
+      function atualizarCardsTela() {
+        document.getElementById("card-bal-MYT").innerText = (userBalances.MYT || 0).toFixed(6);
+        document.getElementById("card-bal-MTG").innerText = (userBalances.MTG || 0).toFixed(6);
+        document.getElementById("card-bal-BTC").innerText = (userBalances.BTC || 0).toFixed(8);
+        document.getElementById("card-bal-DOGE").innerText = (userBalances.DOGE || 0).toFixed(8);
+        document.getElementById("card-bal-LTC").innerText = (userBalances.LTC || 0).toFixed(8);
+      }
+
+      auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+          window.location.href = "login.html";
+          return;
+        }
+        currentUser = user;
+        const docSnap = await db.collection("users").doc(user.uid).get();
+        if (docSnap.exists && docSnap.data().balances) {
+          userBalances = { ...userBalances, ...docSnap.data().balances };
+          atualizarCardsTela();
+        }
+      });
+
+    });
+  </script>
+</body>
+</html>
