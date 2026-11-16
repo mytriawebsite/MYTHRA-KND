@@ -237,12 +237,11 @@
   </div>
 
   <script type="module">
-    import { auth, functions, onAuthStateChanged } from "./firebase.js";
-    import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
+    import { auth, db } from "./firebase.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { doc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    const purchaseItemCallable = httpsCallable(functions, "purchaseItem");
-
-    const UNIT_PRICE = 1;
+    const UNIT_PRICE = 0;
     const MAX_QUANTITY = 99;
 
     let catalogData = {
@@ -325,7 +324,7 @@
             </div>
 
             <div class="item-price" id="price-${id}">
-              Total: 1.00 MYT
+              Total: ${UNIT_PRICE.toFixed(2)} MYT
             </div>
 
             <button
@@ -397,16 +396,43 @@
         if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
           throw new Error("Quantidade inválida. Escolha de 1 a 99.");
         }
+                const user = await esperarUsuarioFirebase();
 
-        await esperarUsuarioFirebase();
+        const result = await runTransaction(db, async (transaction) => {
+          const stateRef = doc(db, "users", user.uid, "game", "state");
+          const snapshot = await transaction.get(stateRef);
 
-        const response = await purchaseItemCallable({
-          type: tipo,
-          itemId: id,
-          quantity
+          if (!snapshot.exists()) {
+            throw new Error("Estado do jogador não encontrado.");
+          }
+
+          const state = snapshot.data();
+          const inventory = state.inventory || {};
+          const categoryInventory = inventory[tipo] || {};
+          const currentQuantity = Number(categoryInventory[id] || 0);
+
+          if (!Number.isSafeInteger(currentQuantity) || currentQuantity < 0) {
+            throw new Error("Quantidade atual do inventário inválida.");
+          }
+
+          transaction.update(stateRef, {
+            inventory: {
+              ...inventory,
+              [tipo]: {
+                ...categoryInventory,
+                [id]: currentQuantity + quantity
+              }
+            },
+            updatedAt: serverTimestamp()
+          });
+
+          return {
+            success: true,
+            balance: state.balance,
+            purchased: quantity,
+            totalPrice: 0
+          };
         });
-
-        const result = response.data;
 
         if (!result || result.success !== true) {
           throw new Error("O servidor não confirmou a compra.");

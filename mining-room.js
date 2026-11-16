@@ -10,6 +10,28 @@
 // O estado real será carregado do Firebase.
 // ============================================
 
+
+// Calibração global fixa: [Y quadrada, Y retangular] por prateleira.
+// Índices: rack 0-15; prateleira 0-3. Não depende de conta ou dispositivo.
+const MACHINE_POSITION_Y = [
+  [[-9,-7.5],[-1.5,0],[2,2.5],[2.5,3.5]],
+  [[-9,-7.5],[-1.5,0],[1.5,3.5],[2,4.5]],
+  [[-9,-7],[-1.5,1],[1.5,3.5],[2,4]],
+  [[-9,-7.5],[-1.5,0.5],[1.5,3],[2,3.5]],
+  [[-9,-7.5],[-1.5,0],[1.5,2.5],[2,3.5]],
+  [[-9,-7.5],[-1.5,0],[1.5,2.5],[2,4]],
+  [[-9,-7.5],[-1.5,0],[1.5,2.5],[2,3.5]],
+  [[-9,-7.5],[-1.5,0],[1.5,2.5],[2,3.5]],
+  [[-9,-7.5],[-1.5,0],[1.5,2.5],[2,3.5]],
+  [[-9,-7.5],[-1.5,0],[1.5,2.5],[2,4]],
+  [[-8.5,-7.5],[-1.5,0],[1.5,2.5],[4,3.5]],
+  [[-8.5,-7.5],[-1,0],[1.5,2],[2,3.5]],
+  [[-8.5,-7.5],[0,0],[0,2.5],[0,3.5]],
+  [[-8.5,-7.5],[-1.5,0],[1.5,2.5],[2,3.5]],
+  [[-8.5,-7.5],[-1.5,0],[0.5,2.5],[2,3.5]],
+  [[-8.5,-7.5],[-1.5,0],[1.5,2.5],[3.5,3.5]]
+];
+
 let catalog = {
     racks: {},
     miners: {}
@@ -31,6 +53,7 @@ let userInventory = {
 
 let activeTargetRackIndex = null;
 let activeTargetShelfIndex = null;
+let activeTargetSide = 'left';
 
 // Conexão e estado persistente da Sala de Mineração.
 let roomFirebaseApi = null;
@@ -70,7 +93,7 @@ function normalizeRoom(data) {
                         : saved[`shelf_${shelfIndex + 1}`];
 
                     if (Array.isArray(shelf)) {
-                        return shelf;
+                        return normalizeShelf(shelf);
                     }
 
                     if (shelf && typeof shelf === "object") {
@@ -86,6 +109,25 @@ function normalizeRoom(data) {
     };
 }
 
+
+function machineSide(machine, index) {
+    if (machine?.side === "left" || machine?.side === "right") {
+        return machine.side;
+    }
+    if (Number(catalog.miners[machine?.minerId]?.size) === 2) {
+        return "both";
+    }
+    return index === 0 ? "left" : "right";
+}
+
+function normalizeShelf(shelf) {
+    if (!Array.isArray(shelf)) return [];
+    return shelf.map((machine, index) => ({
+        ...machine,
+        side: machineSide(machine, index)
+    }));
+}
+
 function normalizeInventory(data) {
     const inv = data && data.inventory && typeof data.inventory === "object"
         ? data.inventory : {};
@@ -98,7 +140,33 @@ function normalizeInventory(data) {
 }
 
 
-async function invokeRoomCallable(callable, payload) {
+
+
+function serializeRoom(room) {
+    const racks = {};
+    room.racks.forEach((rack, rackIndex) => {
+        const shelves = {};
+        for (let shelfIndex = 0; shelfIndex < 4; shelfIndex++) {
+            const machines = {};
+            (rack.shelves[shelfIndex] || []).forEach((machine, machineIndex) => {
+                machines[`machine_${machineIndex + 1}`] = {
+                    minerId: machine.minerId,
+                    side: machine.side || machineSide(machine, machineIndex)
+                };
+            });
+            shelves[`shelf_${shelfIndex + 1}`] = machines;
+        }
+        racks[`slot_${rackIndex + 1}`] = {
+            id: rack.id || `slot_${rackIndex + 1}`,
+            modelId: rack.modelId || null,
+            shelves
+        };
+    });
+    return { racks };
+}
+
+
+async function commitRoomInventory(change) {
     if (!roomFirebaseApi || !roomReady || !roomUser) {
         throw new Error("A sala ainda não está sincronizada com o Firebase.");
     }
@@ -108,14 +176,159 @@ async function invokeRoomCallable(callable, payload) {
 
     roomBusy = true;
     try {
-        const result = await callable(payload);
-        return result.data;
+        const { db, doc, runTransaction, serverTimestamp } = roomFirebaseApi;
+        const ref = doc(db, "users", roomUser.uid, "game", "state");
+
+        await runTransaction(db, async (transaction) => {
+            const snap = await transaction.get(ref);
+            if (!snap.exists()) {
+                throw new Error("Documento de estado do jogador não encontrado.");
+            }
+
+            const current = snap.data();
+            const room = normalizeRoom(current);
+            const inventory = normalizeInventory(current);
+
+            change(room, inventory);
+
+            transaction.update(ref, {
+                room: serializeRoom(room),
+                inventory,
+                updatedAt: serverTimestamp()
+            });
+        });
     } finally {
         roomBusy = false;
     }
 }
 
+function inventoryCount(map, id) {
+    const value = Number(map[id] || 0);
+    if (!Number.isInteger(value) || value < 0) {
+        throw new Error("Quantidade inválida no inventário: " + id);
+    }
+    return value;
+}
 
+function addInventory(map, id, amount = 1) {
+    map[id] = inventoryCount(map, id) + amount;
+}
+
+function getRack(room, index) {
+    if (!Number.isInteger(index) || index < 0 || index >= 16) {
+        throw new Error("Posição de rack inválida.");
+    }
+    return room.racks[index];
+}
+
+function getMinerSize(minerId) {
+    const meta = catalog.miners[minerId];
+    const size = Number(meta?.size);
+    if (!meta || ![1, 2].includes(size)) {
+        throw new Error("Modelo de mineradora inválido.");
+    }
+    return size;
+}
+
+async function installRackDirect(rackIndex, rackId) {
+    await commitRoomInventory((room, inventory) => {
+        const rack = getRack(room, rackIndex);
+        if (!catalog.racks[rackId]) throw new Error("Modelo de rack inválido.");
+        if (rack.modelId) throw new Error("Esse espaço já possui um rack.");
+        if (inventoryCount(inventory.racks, rackId) < 1) {
+            throw new Error("Rack indisponível no inventário.");
+        }
+
+        inventory.racks[rackId]--;
+        rack.modelId = rackId;
+        rack.shelves = [[], [], [], []];
+    });
+}
+
+
+async function installMinerDirect(rackIndex, shelfIndex, minerId, requestedSide) {
+    await commitRoomInventory((room, inventory) => {
+        const rack = getRack(room, rackIndex);
+        if (!rack.modelId) throw new Error("Instale um rack primeiro.");
+        if (!Number.isInteger(shelfIndex) || shelfIndex < 0 || shelfIndex > 3) {
+            throw new Error("Prateleira inválida.");
+        }
+
+        const size = getMinerSize(minerId);
+        const shelf = normalizeShelf(rack.shelves[shelfIndex]);
+        const side = requestedSide === "right" ? "right" : "left";
+
+        if (inventoryCount(inventory.miners, minerId) < 1) {
+            throw new Error("Mineradora indisponível no inventário.");
+        }
+
+        const occupied = new Set();
+        shelf.forEach((machine, index) => {
+            const machineSize = getMinerSize(machine.minerId);
+            const machinePosition = machineSide(machine, index);
+            if (machineSize === 2 || machinePosition === "both") {
+                occupied.add("left");
+                occupied.add("right");
+            } else {
+                occupied.add(machinePosition);
+            }
+        });
+
+        if (size === 2) {
+            if (occupied.size > 0) {
+                throw new Error("A mineradora retangular precisa dos dois slots livres.");
+            }
+            shelf.push({ minerId, side: "both" });
+        } else {
+            if (occupied.has(side)) {
+                throw new Error(`O slot ${side === "left" ? "esquerdo" : "direito"} já está ocupado.`);
+            }
+            shelf.push({ minerId, side });
+        }
+
+        rack.shelves[shelfIndex] = shelf;
+        inventory.miners[minerId]--;
+    });
+}
+
+
+
+async function removeMinerDirect(rackIndex, shelfIndex, machineIndex) {
+    await commitRoomInventory((room, inventory) => {
+        const rack = getRack(room, rackIndex);
+        if (!rack.modelId) throw new Error("Não existe rack nesse espaço.");
+        if (!Number.isInteger(shelfIndex) || shelfIndex < 0 || shelfIndex > 3) {
+            throw new Error("Prateleira inválida.");
+        }
+
+        const shelf = normalizeShelf(rack.shelves[shelfIndex]);
+        const machine = shelf[machineIndex];
+        if (!machine) throw new Error("Mineradora não encontrada.");
+
+        shelf.splice(machineIndex, 1);
+        rack.shelves[shelfIndex] = shelf;
+        addInventory(inventory.miners, machine.minerId);
+    });
+}
+
+
+async function removeRackDirect(rackIndex) {
+    await commitRoomInventory((room, inventory) => {
+        const rack = getRack(room, rackIndex);
+        if (!rack.modelId) throw new Error("Não existe rack nesse espaço.");
+
+        addInventory(inventory.racks, rack.modelId);
+
+        for (const shelf of rack.shelves) {
+            for (const machine of shelf) {
+                addInventory(inventory.miners, machine.minerId);
+            }
+        }
+
+        rack.modelId = null;
+        rack.shelves = [[], [], [], []];
+    });
+}
 
 async function initMiningEngine() {
     try {
@@ -137,8 +350,7 @@ async function initMiningEngine() {
         roomFirebaseApi = await import("./firebase.js");
         const {
             auth, onAuthStateChanged, db, doc, onSnapshot,
-            installRackCallable, installMinerCallable,
-            removeMinerCallable, removeRackCallable
+            runTransaction, serverTimestamp
         } = roomFirebaseApi;
 
         roomAuthUnsub = onAuthStateChanged(auth, (user) => {
@@ -260,7 +472,11 @@ function injectRollerCoinModalStyles() {
             cursor: pointer;
             transition: all 0.2s;
         }
-        .rc-item-row:hover {
+        .mytria-slot-target:focus-visible {
+    outline:2px solid #fff;
+    outline-offset:-2px;
+}
+.rc-item-row:hover {
             border-color: var(--accent-cyan, #00f2ff);
             background: #162032;
         }
@@ -293,7 +509,7 @@ function renderMiningRoom() {
     if (!container) return;
 
     container.innerHTML = '';
-    container.style.cssText = "width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 165px; gap: 5px; padding: 0; align-content: end; justify-items: center; min-height: 510px; z-index: 2;";
+    container.style.cssText = "width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(4, auto); grid-auto-rows: auto; column-gap: 5px; row-gap: 5px; padding-left: 1px; padding-top: 101px; align-content: start; justify-items: center; min-height: 510px; z-index: 2;";
 
     Array.from({ length: 16 }, (_, rackIndex) => {
         const rack = roomState.racks[rackIndex] || {
@@ -304,7 +520,8 @@ function renderMiningRoom() {
         };
 
         const rackCell = document.createElement('div');
-        rackCell.style.cssText = "position: relative; width: 100%; height: 165px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px; border: 1px dashed rgba(0, 242, 255, 0.12); border-radius: 6px; background: rgba(4, 6, 11, 0.2);";
+            rackCell.dataset.rackIndex = rackIndex;
+        rackCell.style.cssText = "position: relative; width: 100%; height: auto; aspect-ratio: 313 / 346; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px; border: 1px dashed rgba(0, 242, 255, 0.12); border-radius: 6px; background: rgba(4, 6, 11, 0.2);";
 
         if (!rack.modelId || !catalog.racks[rack.modelId]) {
             rackCell.innerHTML = `
@@ -316,12 +533,16 @@ function renderMiningRoom() {
         } else {
             const rackMeta = catalog.racks[rack.modelId];
             const rackWrapper = document.createElement('div');
-            rackWrapper.style.cssText = "position: relative; width: 100%; max-height: 155px; aspect-ratio: 338 / 364; display: flex; justify-content: center; align-items: stretch;";
+            rackWrapper.style.cssText = "position: relative; width: 100%; height: 100%; max-height: none; aspect-ratio: 313 / 346; display: flex; justify-content: center; align-items: stretch;";
 
             const removeBtn = document.createElement('button');
             removeBtn.innerHTML = '×';
             removeBtn.style.cssText = "position: absolute; top: -4px; right: 2px; background:#ef4444; border:none; color:#fff; width:15px; height:15px; border-radius:50%; font-size:0.55rem; font-weight:bold; cursor:pointer; z-index:10;";
-            removeBtn.onclick = () => removeRack(rackIndex);
+            removeBtn.onclick = event => {
+                event.preventDefault();
+                event.stopPropagation();
+                window.removeRack(rackIndex);
+            };
             rackWrapper.appendChild(removeBtn);
 
             const rackImg = document.createElement('img');
@@ -348,74 +569,117 @@ function renderMiningRoom() {
                 { top: 72, height: 14 }
             ];
 
+
             slotPositions.forEach((pos, s) => {
                 const shelfSlot = document.createElement('div');
-
+                shelfSlot.classList.add('mytria-shelf-slot');
+                shelfSlot.dataset.shelfIndex = s;
                 shelfSlot.style.cssText = `
-                    position: absolute;
-                    left: 15%;
-                    top: ${pos.top}%;
-                    width: 70%;
-                    height: ${pos.height}%;
-                    transform: ${
-                        s === 0 ? 'translateY(-20px)' :
-                        s === 1 ? 'translateY(-15px)' :
-                        s === 3 ? 'translateY(5px)' :
-                        'translateY(0)'
-                    };
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    gap: 2px;
-                    padding: 0;
-                    box-sizing: border-box;
-                    overflow: visible;
-                    pointer-events: auto;
-                    cursor: pointer;
+                    position:absolute;
+                    left:15%;
+                    top:${pos.top}%;
+                    width:70%;
+                    height:${pos.height}%;
+                    display:flex;
+                    align-items:stretch;
+                    justify-content:stretch;
+                    padding:0;
+                    box-sizing:border-box;
+                    overflow:visible;
+                    pointer-events:none;
                 `;
 
-                shelfSlot.onclick = () => openMinerModal(rackIndex, s);
+                const slotContent = normalizeShelf(rack.shelves[s] || []);
+                const occupied = { left: false, right: false };
 
-                const slotContent = rack.shelves[s] || [];
+                slotContent.forEach((machine, index) => {
+                    const size = getMinerSize(machine.minerId);
+                    const side = size === 2 ? "both" : machineSide(machine, index);
+                    if (side === "both") {
+                        occupied.left = true;
+                        occupied.right = true;
+                    } else {
+                        occupied[side] = true;
+                    }
+                });
 
-                if (slotContent.length === 0) {
-                    shelfSlot.style.border = '1px dashed rgba(0,242,255,0.10)';
-                    shelfSlot.style.borderRadius = '3px';
-                } else {
-                    slotContent.forEach((m, mIdx) => {
-                        const minerMeta = catalog.miners[m.minerId];
+                ["left", "right"].forEach(side => {
+                    const target = document.createElement("button");
+                    target.type = "button";
+                    target.className = `mytria-slot-target mytria-slot-${side}`;
+                    target.textContent = side === "left" ? "E" : "D";
+                    target.title = `Selecionar slot ${side === "left" ? "esquerdo" : "direito"}`;
+                    target.disabled = occupied[side];
+                    target.style.cssText = `
+                        position:absolute;
+                        ${side}:0;
+                        top:0;
+                        width:50%;
+                        height:100%;
+                        padding:0;
+                        border:1px dashed rgba(0,242,255,.48);
+                        border-radius:3px;
+                        background:${occupied[side] ? "rgba(100,116,139,.12)" : "rgba(0,242,255,.055)"};
+                        color:rgba(125,211,252,.75);
+                        font-size:8px;
+                        font-weight:bold;
+                        pointer-events:auto;
+                        cursor:${occupied[side] ? "not-allowed" : "pointer"};
+                        z-index:1;
+                    `;
+                    target.onclick = event => {
+                        event.stopPropagation();
+                        if (!occupied[side]) openMinerModal(rackIndex, s, side);
+                    };
+                    shelfSlot.appendChild(target);
+                });
 
-                        if (!minerMeta || !minerMeta.asset) return;
+                slotContent.forEach((machine, machineIndex) => {
+                    const minerMeta = catalog.miners[machine.minerId];
+                    if (!minerMeta || !minerMeta.asset) return;
 
-                        const minerImg = document.createElement('img');
-                        minerImg.src = minerMeta.asset;
-                        minerImg.alt = minerMeta.name;
-                        minerImg.title = `${minerMeta.name} (Clique para remover)`;
+                    const isSquare = Number(minerMeta.size) === 1;
+                    const side = isSquare ? machineSide(machine, machineIndex) : "both";
+                    const minerImg = document.createElement("img");
+                    minerImg.src = minerMeta.asset;
+                    minerImg.alt = minerMeta.name;
+                    minerImg.title = `${minerMeta.name} (Clique para remover)`;
+                    minerImg.classList.add("mytria-miner");
+                    minerImg.dataset.minerType = isSquare ? "square" : "rect";
+                    minerImg.dataset.minerSide = side === "right" ? "1" : "0";
+                    minerImg.dataset.shelfIndex = s;
+                    minerImg.dataset.rackIndex = rackIndex;
+                    minerImg.dataset.minerId = machine.minerId;
 
-                        const isSquare = Number(minerMeta.size) === 1;
+                    minerImg.style.cssText = `
+                        position:absolute;
+                        left:${side === "right" ? "50%" : "0"};
+                        bottom:0;
+                        display:block;
+                        width:${isSquare ? "50%" : "100%"};
+                        height:100%;
+                        min-width:0;
+                        max-width:${isSquare ? "50%" : "100%"};
+                        object-fit:contain;
+                        object-position:center bottom;
+                        transform:none;
+                        transform-origin:center bottom;
+                        cursor:pointer;
+                        pointer-events:auto;
+                        z-index:3;
+                        filter:drop-shadow(0 1px 2px rgba(0,0,0,.9));
+                    `;
 
-                        minerImg.style.cssText = `
-                            display: block;
-                            flex: ${isSquare ? '0 1 49%' : '1 1 100%'};
-                            width: ${isSquare ? '49%' : '100%'};
-                            height: 100%;
-                            min-width: 0;
-                            max-width: ${isSquare ? '49%' : '100%'};
-                            object-fit: contain;
-                            object-position: center;
-                            transform: scale(1.5625);
-                            cursor: pointer;
-                            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.9));
-                        `;
+                    const calibratedY = MACHINE_POSITION_Y[rackIndex]?.[s]?.[isSquare ? 0 : 1] ?? 0;
+            minerImg.style.transform = `translateY(${calibratedY}px) scale(1.5625)`;
+                    minerImg.onclick = event => {
+                        event.stopPropagation();
 
-                        minerImg.onclick = (e) => {
-                            e.stopPropagation();
-                            removeMiner(rackIndex, s, mIdx);
-                        };
+                        window.removeMiner(rackIndex, s, machineIndex);
+                    };
 
-                        shelfSlot.appendChild(minerImg);
-                    });
-                }
+                    shelfSlot.appendChild(minerImg);
+                });
 
                 shelvesOverlay.appendChild(shelfSlot);
             });
@@ -425,6 +689,7 @@ function renderMiningRoom() {
         }
         container.appendChild(rackCell);
     });
+
 }
 
 function injectRollerCoinTopBar() {
@@ -476,9 +741,10 @@ window.openRackModal = function(rackIndex) {
     openGlobalModal('racks', true);
 };
 
-window.openMinerModal = function(rackIndex, shelfIndex) {
+window.openMinerModal = function(rackIndex, shelfIndex, side = "left") {
     activeTargetRackIndex = rackIndex;
     activeTargetShelfIndex = shelfIndex;
+    activeTargetSide = side === "right" ? "right" : "left";
     openGlobalModal('miners', true);
 };
 
@@ -550,6 +816,7 @@ window.openGlobalModal = function(category, isPlacement = false) {
     bodyEl.innerHTML = html || '<div style="text-align:center; color:#94a3b8; padding:20px;">Nenhum item disponível no inventário.</div>';
 };
 
+
 window.selectRack = async function(rackId) {
     if (activeTargetRackIndex === null || !roomReady) return;
 
@@ -561,11 +828,7 @@ window.selectRack = async function(rackId) {
 
     const index = activeTargetRackIndex;
     try {
-        await invokeRoomCallable(roomFirebaseApi.installRackCallable, {
-            slotId: `slot_${index + 1}`,
-            rackId
-        });
-
+        await installRackDirect(index, rackId);
         closeModal();
         activeTargetRackIndex = null;
     } catch (error) {
@@ -577,20 +840,12 @@ window.selectRack = async function(rackId) {
 window.removeRack = async function(rackIndex) {
     if (!roomReady || !roomUser || rackRemovalBusy) return;
 
-    const slotNumber = Number(rackIndex) + 1;
-    if (!Number.isInteger(slotNumber) || slotNumber < 1 || slotNumber > 16) {
-        alert("Posição de rack inválida.");
-        return;
-    }
-
-    const slotId = `slot_${slotNumber}`;
     rackRemovalBusy = true;
-
     try {
-        await invokeRoomCallable(roomFirebaseApi.removeRackCallable, { slotId });
-        console.info("MYTRIA: rack e mineradoras devolvidos ao inventário.", slotId);
+        await removeRackDirect(Number(rackIndex));
+        console.info("MYTRIA: rack e mineradoras devolvidos ao inventário.");
     } catch (error) {
-        console.error("Erro ao retirar rack pelo backend:", error);
+        console.error("Erro ao retirar rack:", error);
         alert(error.message || "Não foi possível remover o rack.");
     } finally {
         rackRemovalBusy = false;
@@ -598,21 +853,16 @@ window.removeRack = async function(rackIndex) {
 };
 
 window.selectMiner = async function(minerId) {
-    if (activeTargetRackIndex === null || activeTargetShelfIndex === null || !roomReady) return;
+    if (activeTargetRackIndex === null ||
+        activeTargetShelfIndex === null || !roomReady) return;
 
     const rackIndex = activeTargetRackIndex;
     const shelfIndex = activeTargetShelfIndex;
-    const meta = catalog.miners[minerId];
 
-    if (!meta) return;
+    if (!catalog.miners[minerId]) return;
 
     try {
-        await invokeRoomCallable(roomFirebaseApi.installMinerCallable, {
-            slotId: `slot_${rackIndex + 1}`,
-            shelfId: `shelf_${shelfIndex + 1}`,
-            minerId
-        });
-
+        await installMinerDirect(rackIndex, shelfIndex, minerId, activeTargetSide);
         closeModal();
         activeTargetRackIndex = null;
         activeTargetShelfIndex = null;
@@ -626,11 +876,11 @@ window.removeMiner = async function(rackIndex, shelfIndex, machineIndex) {
     if (!roomReady) return;
 
     try {
-        await invokeRoomCallable(roomFirebaseApi.removeMinerCallable, {
-            slotId: `slot_${rackIndex + 1}`,
-            shelfId: `shelf_${shelfIndex + 1}`,
-            machineIndex
-        });
+        await removeMinerDirect(
+            Number(rackIndex),
+            Number(shelfIndex),
+            Number(machineIndex)
+        );
     } catch (error) {
         console.error(error);
         alert(error.message || "Não foi possível remover a mineradora.");
@@ -641,7 +891,7 @@ window.openGearQuickPanel = function() {
     const modal = document.getElementById('mytria-fullscreen-modal');
     modal.style.display = 'flex';
     document.getElementById('full-modal-title').innerHTML = `<i class="fa-solid fa-gear"></i> CONFIGURAÇÕES DA SALA`;
-    
+
     let html = `<div style="font-size:0.8rem; color:#94a3b8; margin-bottom:8px;">Grade 4x4 (16 posições disponíveis):</div>`;
     roomState.racks.forEach((rack, idx) => {
         const meta = catalog.racks[rack.modelId];

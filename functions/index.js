@@ -22,6 +22,20 @@ exports.initializePlayer = onCall(async (request) => {
     );
   }
 
+  const signInProvider =
+    request.auth.token.firebase &&
+    request.auth.token.firebase.sign_in_provider;
+
+  if (
+    signInProvider === "password" &&
+    request.auth.token.email_verified !== true
+  ) {
+    throw new HttpsError(
+        "permission-denied",
+        "Verifique seu endereço de e-mail antes de entrar no MYTRIA.",
+    );
+  }
+
   const uid = request.auth.uid;
   const email = String(request.auth.token.email || "").toLowerCase();
   const isTestProject = process.env.GCLOUD_PROJECT === "demo-mytria02";
@@ -143,7 +157,7 @@ exports.purchaseItem = onCall(async (request) => {
 
   const uid = request.auth.uid;
   const stateRef = db.doc(`users/${uid}/game/state`);
-  const unitPrice = 1;
+  const unitPrice = 0;
   const totalPrice = unitPrice * quantity;
 
   try {

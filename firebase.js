@@ -50,7 +50,7 @@ if (emulatorRequested && !isLocalHost) {
   throw new Error("Modo de teste permitido somente em localhost.");
 }
 
-const useEmulators = isLocalHost;
+const useEmulators = isLocalHost && new URLSearchParams(window.location.search).get("firebase") === "emulator";
 
 const firebaseConfig = useEmulators
   ? {
@@ -94,15 +94,17 @@ if (useEmulators) {
 }
 
 // Persistência da autenticação
-setPersistence(auth, browserLocalPersistence).catch((error) => {
-  console.error("Erro ao configurar persistência:", error);
-});
+export const authReady = setPersistence(auth, browserLocalPersistence)
+  .catch((error) => {
+    console.error("Erro ao configurar persistência:", error);
+    throw error;
+  });
 
 // Encerramento da sessão sem apagar dados do navegador
 export async function signOut(authInstance = auth) {
   try {
     await fbSignOut(authInstance);
-    window.location.href = "login.html";
+    window.location.href = "login2.html";
   } catch (error) {
     console.error("Erro ao realizar logout:", error);
     throw error;

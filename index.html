@@ -125,27 +125,10 @@
     </div>
   </main>
 
-  <!-- PAINEL FLUTUANTE DE CALIBRAÇÃO IGUAL AO MINI ROOM -->
-  <div id="home-calibration-panel" style="position: fixed; bottom: 12px; right: 12px; background: #0b1725; border: 2px solid #00f2ff; border-radius: 12px; padding: 12px; z-index: 99999; color: #fff; font-size: 11px; max-width: 250px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
-    <div style="font-weight: bold; color: #00f2ff; margin-bottom: 6px; display: flex; justify-content: space-between;">
-      <span>CALIBRADOR AO VIVO</span>
-      <button onclick="document.getElementById('home-calibration-panel').style.display='none'" style="background:none; border:none; color:#ff4444; font-weight:bold; cursor:pointer;">×</button>
-    </div>
-    <div style="margin-bottom: 4px; border-top: 1px solid #1e293b; padding-top: 4px;"><b>Eixo X (Slots Quadrados):</b></div>
-    <div style="display: flex; justify-content: space-between; margin-bottom: 3px;"><span>Slot Esq (0): <b id="lbl-x0">0px</b></span><div><button onclick="adjustHomeX(0, -1)" style="padding:2px 6px;">-</button><button onclick="adjustHomeX(0, 1)" style="padding:2px 6px;">+</button></div></div>
-    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span>Slot Dir (1): <b id="lbl-x1">-4px</b></span><div><button onclick="adjustHomeX(1, -1)" style="padding:2px 6px;">-</button><button onclick="adjustHomeX(1, 1)" style="padding:2px 6px;">+</button></div></div>
-    <div style="margin-bottom: 4px; border-top: 1px solid #1e293b; padding-top: 4px;"><b>Eixo Y (Prateleiras):</b></div>
-    <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>Prat 1: <b id="lbl-y0">-7px</b></span><div><button onclick="adjustHomeY(0, -1)" style="padding:2px 6px;">-</button><button onclick="adjustHomeY(0, 1)" style="padding:2px 6px;">+</button></div></div>
-    <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>Prat 2: <b id="lbl-y1">-10px</b></span><div><button onclick="adjustHomeY(1, -1)" style="padding:2px 6px;">-</button><button onclick="adjustHomeY(1, 1)" style="padding:2px 6px;">+</button></div></div>
-    <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>Prat 3: <b id="lbl-y2">-14px</b></span><div><button onclick="adjustHomeY(2, -1)" style="padding:2px 6px;">-</button><button onclick="adjustHomeY(2, 1)" style="padding:2px 6px;">+</button></div></div>
-    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span>Prat 4: <b id="lbl-y3">-19px</b></span><div><button onclick="adjustHomeY(3, -1)" style="padding:2px 6px;">-</button><button onclick="adjustHomeY(3, 1)" style="padding:2px 6px;">+</button></div></div>
-    <button onclick="exportHomeCalib()" style="width:100%; background:#84cc16; color:#0f172a; border:none; padding:6px; border-radius:6px; font-weight:bold; cursor:pointer;">Exportar / Salvar</button>
-  </div>
-
   <script src="header-template.js" type="module"></script>
   <script src="auth-guard.js" type="module"></script>
   <script src="mining-room.js"></script>
-  <script>
+    <script>
     function switchRoom(roomNumber) {
       const buttons = document.querySelectorAll('.room-tab-btn');
       const roomTitle = document.getElementById('roomTitle');
@@ -156,51 +139,6 @@
       if (roomNumber === 1) roomTitle.innerHTML = `<i class="fa-solid fa-satellite"></i> ESTAÇÃO ESPACIAL ORBITAL (TERRA)`;
     }
 
-    let liveY = JSON.parse(localStorage.getItem('mytria_shelf_offsets')) || [-7, -10, -14, -19];
-    let liveX = JSON.parse(localStorage.getItem('mytria_slot_x_offsets')) || [0, -4];
-
-    function applyDynamicStyles() {
-      const styleBlock = document.getElementById('admin-shelf-adjustments');
-      if (styleBlock) {
-        styleBlock.innerHTML = `
-          .shelf-row-1 { transform: translateY(${liveY[0]}px) !important; }
-          .shelf-row-2 { transform: translateY(${liveY[1]}px) !important; }
-          .shelf-row-3 { transform: translateY(${liveY[2]}px) !important; }
-          .shelf-row-4 { transform: translateY(${liveY[3]}px) !important; }
-        `;
-      }
-    }
-
-    function updateHomeCalibUI() {
-      for(let i=0; i<4; i++) {
-        const el = document.getElementById(`lbl-y${i}`);
-        if(el) el.textContent = liveY[i] + 'px';
-      }
-      document.getElementById('lbl-x0').textContent = liveX[0] + 'px';
-      document.getElementById('lbl-x1').textContent = liveX[1] + 'px';
-      applyDynamicStyles();
-    }
-
-    function adjustHomeY(index, delta) {
-      liveY[index] += delta;
-      localStorage.setItem('mytria_shelf_offsets', JSON.stringify(liveY));
-      updateHomeCalibUI();
-    }
-
-    function adjustHomeX(index, delta) {
-      liveX[index] += delta;
-      localStorage.setItem('mytria_slot_x_offsets', JSON.stringify(liveX));
-      updateHomeCalibUI();
-      if(typeof renderMiningRoom === 'function') renderMiningRoom();
-    }
-
-    function exportHomeCalib() {
-      alert("Calibração salva!\nShelf Y: " + JSON.stringify(liveY) + "\nSlot X: " + JSON.stringify(liveX));
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      updateHomeCalibUI();
-    });
   </script>
 </body>
 </html>

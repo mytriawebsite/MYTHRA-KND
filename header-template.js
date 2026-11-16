@@ -1,6 +1,9 @@
 import { auth, db, onAuthStateChanged, signOut, doc, getDoc, onSnapshot } from "./firebase.js";
 
 function initHeader() {
+  const currentPage = window.location.pathname.split("/").pop();
+  if (currentPage === "login2.html") return;
+
   let container = document.getElementById("header-container");
   
   if (!container) {
